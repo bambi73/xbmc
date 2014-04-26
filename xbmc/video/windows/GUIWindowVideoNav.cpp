@@ -274,7 +274,12 @@ bool CGUIWindowVideoNav::GetDirectory(const CStdString &strDirectory, CFileItemL
 
   items.ClearProperties();
 
+  unsigned int time = XbmcThreads::SystemClockMillis();
   bool bResult = CGUIWindowVideoBase::GetDirectory(strDirectory, items);
+  CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIWindowVideoNav::GetDirectory", XbmcThreads::SystemClockMillis() - time);
+
+  time = XbmcThreads::SystemClockMillis();
+
   if (bResult)
   {
     if (items.IsVideoDb())
@@ -428,6 +433,10 @@ bool CGUIWindowVideoNav::GetDirectory(const CStdString &strDirectory, CFileItemL
       items.Add(newTag);
     }
   }
+
+  CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIWindowVideoNav::GetDirectory", XbmcThreads::SystemClockMillis() - time);
+
+
   return bResult;
 }
 

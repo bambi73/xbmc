@@ -299,6 +299,7 @@ CFileItem::CFileItem(const CFileItem& item): CGUIListItem()
   m_pvrRecordingInfoTag = NULL;
   m_pvrTimerInfoTag = NULL;
   m_pictureInfoTag = NULL;
+  m_bIsDirty = false;
   *this = item;
 }
 
@@ -581,6 +582,7 @@ void CFileItem::Reset()
   m_pictureInfoTag=NULL;
   m_extrainfo.clear();
   m_specialSort = SortSpecialNone;
+  m_bIsDirty = false;
   ClearProperties();
   SetInvalid();
 }
@@ -1526,6 +1528,31 @@ void CFileItem::SetFromVideoInfoTag(const CVideoInfoTag &video)
   if (video.m_iSeason == 0)
     SetProperty("isspecial", "true");
   FillInDefaultIcon();
+  FillInMimeType(false);
+}
+
+void CFileItem::SetFromVideoInfoTagFast(const CVideoInfoTag &video, const CStdString& defaultIcon)
+{
+  if (!video.m_strTitle.empty())
+    SetLabel(video.m_strTitle);
+  if (video.m_strFileNameAndPath.empty())
+  {
+    m_strPath = video.m_strPath;
+    char endChar = m_strPath.c_str()[m_strPath.size() - 1];
+    if(endChar != '/' && endChar != '\\')
+      URIUtils::AddSlashAtEnd(m_strPath);
+    m_bIsFolder = true;
+  }
+  else
+  {
+    m_strPath = video.m_strFileNameAndPath;
+    m_bIsFolder = false;
+  }
+
+  *GetVideoInfoTag() = video;
+  if (video.m_iSeason == 0)
+    SetProperty("isspecial", "true");
+  SetIconImage(defaultIcon);
   FillInMimeType(false);
 }
 

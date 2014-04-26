@@ -67,6 +67,11 @@ namespace XFILE
     bool success = false, success2 = false;
     std::vector<CStdString> virtualFolders;
 
+    unsigned int timeFull = XbmcThreads::SystemClockMillis();
+    unsigned int timePart = XbmcThreads::SystemClockMillis();
+   	CLog::Log(LOGDEBUG, "%s started", "CSmartPlaylistDirectory::GetDirectory");
+
+
     SortDescription sorting;
     sorting.limitEnd = playlist.GetLimit();
     sorting.sortBy = playlist.GetOrder();
@@ -92,14 +97,24 @@ namespace XFILE
       }
     }
 
+    CLog::Log(LOGDEBUG, "%s took %d ms ", "CSmartPlaylistDirectory::GetDirectory part 1", XbmcThreads::SystemClockMillis() - timePart);
+    timePart = XbmcThreads::SystemClockMillis();
+
+
     if (playlist.GetType().Equals("movies") ||
         playlist.GetType().Equals("tvshows") ||
         playlist.GetType().Equals("episodes"))
     {
-      CVideoDatabase db;
+      unsigned int timeBambi2 = XbmcThreads::SystemClockMillis();
+
+    	CVideoDatabase db;
       if (db.Open())
       {
-        MediaType mediaType = DatabaseUtils::MediaTypeFromString(playlist.GetType());
+        CLog::Log(LOGDEBUG, "%s took %d ms ", "CSmartPlaylistDirectory::GetDirectory OpenDB", XbmcThreads::SystemClockMillis() - timeBambi2);
+        timeBambi2 = XbmcThreads::SystemClockMillis();
+
+
+      	MediaType mediaType = DatabaseUtils::MediaTypeFromString(playlist.GetType());
 
         CStdString baseDir = strBaseDir;
         if (strBaseDir.empty())
@@ -149,9 +164,17 @@ namespace XFILE
         else
           videoUrl.RemoveOption(option);
         
+        CLog::Log(LOGDEBUG, "%s took %d ms ", "CSmartPlaylistDirectory::GetDirectory Preparing query", XbmcThreads::SystemClockMillis() - timeBambi2);
+        timeBambi2 = XbmcThreads::SystemClockMillis();
+
+
         CDatabase::Filter dbfilter;
         success = db.GetItems(videoUrl.ToString(), items, dbfilter, sorting);
         db.Close();
+
+        CLog::Log(LOGDEBUG, "%s took %d ms ", "CSmartPlaylistDirectory::GetDirectory Processing query", XbmcThreads::SystemClockMillis() - timeBambi2);
+        timeBambi2 = XbmcThreads::SystemClockMillis();
+
 
         // if we retrieve a list of episodes and we didn't receive
         // a pre-defined base path, we need to fix it
@@ -226,6 +249,10 @@ namespace XFILE
       }
     }
 
+    CLog::Log(LOGDEBUG, "%s took %d ms ", "CSmartPlaylistDirectory::GetDirectory part 2", XbmcThreads::SystemClockMillis() - timePart);
+    timePart = XbmcThreads::SystemClockMillis();
+
+
     if (playlist.GetType().Equals("musicvideos") || playlist.GetType().Equals("mixed"))
     {
       CVideoDatabase db;
@@ -284,6 +311,10 @@ namespace XFILE
       }
     }
 
+    CLog::Log(LOGDEBUG, "%s took %d ms ", "CSmartPlaylistDirectory::GetDirectory part 3", XbmcThreads::SystemClockMillis() - timePart);
+    timePart = XbmcThreads::SystemClockMillis();
+
+
     items.SetLabel(playlist.GetName());
     if (isGrouped)
       items.SetContent(group);
@@ -308,6 +339,11 @@ namespace XFILE
       CFileItemPtr item = items[i];
       item->m_iprogramCount = i;  // hack for playlist order
     }
+
+
+    CLog::Log(LOGDEBUG, "%s took %d ms ", "CSmartPlaylistDirectory::GetDirectory part 4", XbmcThreads::SystemClockMillis() - timePart);
+    CLog::Log(LOGDEBUG, "%s took %d ms ", "CSmartPlaylistDirectory::GetDirectory", XbmcThreads::SystemClockMillis() - timeFull);
+
 
     if (playlist.GetType().Equals("mixed"))
       return success || success2;

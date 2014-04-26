@@ -412,6 +412,7 @@ public:
    \param video video details to use and set
    */
   void SetFromVideoInfoTag(const CVideoInfoTag &video);
+  void SetFromVideoInfoTagFast(const CVideoInfoTag &video, const CStdString& defaultIcon);
   /*! \brief Sets details using the information from the CAlbum object
    Sets the album in the music info tag and uses its information to set the
    label and album-specific properties.
@@ -424,6 +425,9 @@ public:
    \param song song details to use and set
    */
   void SetFromSong(const CSong &song);
+
+  bool IsDirty() const { return m_bIsDirty; }
+  void SetDirty(bool dirty) { m_bIsDirty = dirty; }
 
   bool m_bIsShareOrDrive;    ///< is this a root share/drive
   int m_iDriveType;     ///< If \e m_bIsShareOrDrive is \e true, use to get the share type. Types see: CMediaSource::m_iDriveType
@@ -458,6 +462,8 @@ private:
   PVR::CPVRTimerInfoTag * m_pvrTimerInfoTag;
   CPictureInfoTag* m_pictureInfoTag;
   bool m_bIsAlbum;
+
+  bool m_bIsDirty;
 };
 
 /*!

@@ -24,6 +24,7 @@
 #include "Bookmark.h"
 #include "utils/SortUtils.h"
 #include "video/VideoDbUrl.h"
+#include "FileItem.h"
 
 #include <memory>
 #include <set>
@@ -330,6 +331,67 @@ const struct SDbTableOffsets DbMusicVideoOffsets[] =
 
 #define COMPARE_PERCENTAGE     0.90f // 90%
 #define COMPARE_PERCENTAGE_MIN 0.50f // 50%
+
+
+/* Tady je Bambiho */
+
+typedef boost::shared_ptr< CFileItemList > CFileItemListPtr;
+
+typedef std::map< int, CFileItemPtr > MAP_INT2FILEITEMPTR;
+typedef std::map< int, CFileItemPtr >::iterator MAPI_INT2FILEITEMPTR;
+typedef std::pair< int, CFileItemPtr > MAPP_INT2FILEITEMPTR;
+
+class CTvShowCacheItem {
+public:
+	CTvShowCacheItem();
+  virtual ~CTvShowCacheItem();
+
+  bool IsDirty() const { return m_bIsDirty; }
+
+  bool m_bIsDirty;
+  CFileItemListPtr m_fileItemListPtr;
+  MAP_INT2FILEITEMPTR m_tvShowId2FileItemPtr;
+};
+
+typedef boost::shared_ptr< CTvShowCacheItem > CTvShowCacheItemPtr;
+
+typedef std::map< CStdString, CTvShowCacheItemPtr > MAP_STRING2TVSHOWCACHEITEMPTR;
+typedef std::map< CStdString, CTvShowCacheItemPtr >::iterator MAPI_STRING2TVSHOWCACHEITEMPTR;
+typedef std::pair< CStdString, CTvShowCacheItemPtr > MAPP_STRING2TVSHOWCACHEITEMPTR;
+
+typedef std::set< CTvShowCacheItemPtr > SET_TVSHOWCACHEITEMPTR;
+typedef std::set< CTvShowCacheItemPtr >::iterator SETI_TVSHOWCACHEITEMPTR;
+
+typedef std::vector< CFileItemPtr > VEC_FILEITEMPTR;
+typedef std::vector< CFileItemPtr >::iterator VECI_FILEITEMPTR;
+
+typedef std::map< int, SET_TVSHOWCACHEITEMPTR > MAP_INT2TVSHOWCACHEITEMPTRSET;
+typedef std::map< int, SET_TVSHOWCACHEITEMPTR >::iterator MAPI_INT2TVSHOWCACHEITEMPTRSET;
+typedef std::pair< int, SET_TVSHOWCACHEITEMPTR > MAPP_INT2TVSHOWCACHEITEMPTRSET;
+
+class CTvShowCache {
+public:
+	CTvShowCache();
+  virtual ~CTvShowCache();
+
+  void getAffectedTvShowFileItems(int showId, VEC_FILEITEMPTR &affectedFileItems, bool dirty);
+  void DirtyTvShowFileItemById(int showId);
+
+  bool IsDirty() const { return m_bIsDirty; }
+  void SetDirty(bool isDirty) { m_bIsDirty = isDirty; }
+
+  MAP_STRING2TVSHOWCACHEITEMPTR m_sqlQuery2TvShowCacheItemPtr;
+  MAP_INT2TVSHOWCACHEITEMPTRSET m_tvShowId2TvShowCacheItemPtrSet;
+
+private:
+  bool m_bIsDirty;
+
+};
+
+
+
+
+
 
 class CVideoDatabase : public CDatabase
 {
@@ -831,4 +893,9 @@ private:
 
   void AnnounceRemove(std::string content, int id);
   void AnnounceUpdate(std::string content, int id);
+
+  void UpdateTvShowFileItemById(int showId);
+
+  static CTvShowCache sm_TvShowCache;
+
 };
