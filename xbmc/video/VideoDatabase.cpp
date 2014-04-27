@@ -2137,12 +2137,15 @@ int CVideoDatabase::SetDetailsForTvShow(const CStdString& strPath, const CVideoI
     }
 
     BeginTransaction();
+    bool bUpdateCache = false;
 
     if (idTvShow < 0)
       idTvShow = GetTvShowId(strPath);
 
-    if (idTvShow > -1)
+    if (idTvShow > -1) {
       DeleteDetailsForTvShow(strPath, idTvShow);
+      bUpdateCache = true;
+    }
     else
     {
       idTvShow = AddTvShow(strPath);
@@ -2192,6 +2195,11 @@ int CVideoDatabase::SetDetailsForTvShow(const CStdString& strPath, const CVideoI
     CStdString sql = "update tvshow set " + GetValueString(details, VIDEODB_ID_TV_MIN, VIDEODB_ID_TV_MAX, DbTvShowOffsets);
     sql += PrepareSQL(" where idShow=%i", idTvShow);
     m_pDS->exec(sql.c_str());
+
+    if(bUpdateCache)
+      UpdateTvShowFileItemById(idTvShow);
+    else
+      sm_TvShowCache.DirtyAllTvShowCacheItems();
 
     CommitTransaction();
 
@@ -2316,6 +2324,9 @@ int CVideoDatabase::SetDetailsForEpisode(const CStdString& strFilenameAndPath, c
     CStdString sql = "update episode set " + GetValueString(details, VIDEODB_ID_EPISODE_MIN, VIDEODB_ID_EPISODE_MAX, DbEpisodeOffsets);
     sql += PrepareSQL(" where idEpisode=%i", idEpisode);
     m_pDS->exec(sql.c_str());
+
+    UpdateTvShowFileItemById(idShow);
+
     CommitTransaction();
 
     return idEpisode;
@@ -2939,7 +2950,7 @@ void CVideoDatabase::DeleteTvShow(const CStdString& strPath, bool bKeepId /* = f
       CStdString strPath = m_pDS2->fv("path.strPath").get_asString();
       CStdString strFileName = m_pDS2->fv("files.strFilename").get_asString();
       ConstructPath(strFilenameAndPath, strPath, strFileName);
-      DeleteEpisode(strFilenameAndPath, m_pDS2->fv(0).get_asInt(), bKeepId);
+      DeleteEpisode(strFilenameAndPath, m_pDS2->fv(0).get_asInt(), bKeepId, bKeepId);
       m_pDS2->next();
     }
 
@@ -2961,6 +2972,7 @@ void CVideoDatabase::DeleteTvShow(const CStdString& strPath, bool bKeepId /* = f
       m_pDS->exec(strSQL.c_str());
 
       InvalidatePathHash(strPath);
+      sm_TvShowCache.ProcessAffectedTvShowFileItems(idTvShow, NULL, false, true);
    }
 
     //TODO: move this below CommitTransaction() once UPnP doesn't rely on this anymore
@@ -2988,7 +3000,8 @@ void CVideoDatabase::DeleteEpisode(int idEpisode, bool bKeepId /* = false */)
     DeleteEpisode(path, idEpisode, bKeepId);
 }
 
-void CVideoDatabase::DeleteEpisode(const CStdString& strFilenameAndPath, int idEpisode /* = -1 */, bool bKeepId /* = false */)
+void CVideoDatabase::DeleteEpisode(
+    const CStdString& strFilenameAndPath, int idEpisode /* = -1 */, bool bKeepId /* = false */, bool bUpdateCache /* = true */)
 {
   try
   {
@@ -3023,10 +3036,17 @@ void CVideoDatabase::DeleteEpisode(const CStdString& strFilenameAndPath, int idE
     // the ancilliary tables are still purged
     if (!bKeepId)
     {
+      int showId = -1;
+
       ClearBookMarksOfFile(strFilenameAndPath);
+      if(bUpdateCache)
+        showId = GetTvShowForEpisode(idEpisode);
 
       strSQL=PrepareSQL("delete from episode where idEpisode=%i", idEpisode);
       m_pDS->exec(strSQL.c_str());
+
+      if(bUpdateCache)
+        UpdateTvShowFileItemById(showId);
     }
 
   }
@@ -6028,7 +6048,7 @@ bool CVideoDatabase::GetTvShowsByWhere(const CStdString& strBaseDir, const Filte
     CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere cache lookup", XbmcThreads::SystemClockMillis() - timePart);
     timePart = XbmcThreads::SystemClockMillis();
 
-    if(cacheTvShowCacheItemPtr && !cacheTvShowCacheItemPtr->IsDirty() && !sm_TvShowCache.IsDirty()) {
+    if(cacheTvShowCacheItemPtr && !cacheTvShowCacheItemPtr->IsDirty()) {
       items.Copy(*cacheTvShowCacheItemPtr->m_fileItemListPtr);
 
       CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere cache copy", XbmcThreads::SystemClockMillis() - timePart);
@@ -6089,6 +6109,7 @@ bool CVideoDatabase::GetTvShowsByWhere(const CStdString& strBaseDir, const Filte
     int baseURLReserve = baseURLMain.length() + (!baseURLOptions.empty() ? baseURLOptions.length() : 0) + 8;
 
     bool cacheInsertMode;
+    int takenFromCache = 0;
 
     if(!cacheTvShowCacheItemPtr) {
       cacheTvShowCacheItemPtr = CTvShowCacheItemPtr(new CTvShowCacheItem);
@@ -6102,8 +6123,7 @@ bool CVideoDatabase::GetTvShowsByWhere(const CStdString& strBaseDir, const Filte
       cacheInsertMode = false;
     }
 
-    cacheTvShowCacheItemPtr->m_bIsDirty = false;
-    sm_TvShowCache.SetDirty(false);
+    cacheTvShowCacheItemPtr->SetDirty(false);
 
     // get data from returned rows
     items.Reserve(results.size());
@@ -6132,6 +6152,7 @@ bool CVideoDatabase::GetTvShowsByWhere(const CStdString& strBaseDir, const Filte
             CFileItemPtr pItem(new CFileItem(*cacheFileItemPtr.get()));
             cacheTvShowCacheItemPtr->m_fileItemListPtr->Add(cacheFileItemPtr);
             items.Add(pItem);
+            takenFromCache++;
 
             continue;
           }
@@ -6181,8 +6202,6 @@ bool CVideoDatabase::GetTvShowsByWhere(const CStdString& strBaseDir, const Filte
       timeSumRestE += (XbmcThreads::SystemClockMillis() - timeFill);
     }
 
-//    sm_TvShowCache.m_bIsDirty = true;
-
     CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere processing data - Prepare", timeSumPrepare);
     CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere processing data - GetVideoTag", timeSumGetVideoTag);
     CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere processing data - SetFromVideoTag", timeSumSetFromVideoTag);
@@ -6191,8 +6210,8 @@ bool CVideoDatabase::GetTvShowsByWhere(const CStdString& strBaseDir, const Filte
     CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere processing data - RestE", timeSumRestE);
     CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere processing data", XbmcThreads::SystemClockMillis() - timePart);
 
-    CLog::Log(LOGDEBUG, "%s items.size() = %d", "CVideoDatabase::GetTvShowsByWhere", items.Size());
-    CLog::Log(LOGDEBUG, "%s cacheTvShowCacheItemPtr->m_fileItemListPtr->Size() = %d", "CVideoDatabase::GetTvShowsByWhere", cacheTvShowCacheItemPtr->m_fileItemListPtr->Size());
+    CLog::Log(LOGDEBUG, "%s items.size() = %d (%d taken from cache)", __FUNCTION__, items.Size(), takenFromCache);
+    CLog::Log(LOGDEBUG, "%s cacheTvShowCacheItemPtr->m_fileItemListPtr->Size() = %d", __FUNCTION__, cacheTvShowCacheItemPtr->m_fileItemListPtr->Size());
     timePart = XbmcThreads::SystemClockMillis();
 
 
@@ -8157,6 +8176,9 @@ void CVideoDatabase::CleanDatabase(CGUIDialogProgressBarHandle* handle, const se
     std::vector<int> episodeIDs;
     std::vector<int> musicVideoIDs;
 
+    std::set<int> cacheUpdateTvShowIds;
+    std::set<int> cacheDeleteTvShowIds;
+
     if (!filesToTestForDelete.empty())
     {
       StringUtils::TrimRight(filesToTestForDelete, ",");
@@ -8175,6 +8197,15 @@ void CVideoDatabase::CleanDatabase(CGUIDialogProgressBarHandle* handle, const se
     if (!filesToDelete.empty())
     {
       filesToDelete = "(" + StringUtils::TrimRight(filesToDelete, ",") + ")";
+
+      CLog::Log(LOGDEBUG, "%s: Loading tvshows with cleaned files", __FUNCTION__);
+      sql = "SELECT DISTINCT episode.idShow FROM episode WHERE idFile IN " + filesToDelete;
+      m_pDS->query(sql.c_str());
+      while (!m_pDS->eof()) {
+        cacheUpdateTvShowIds.insert(m_pDS->fv(0).get_asInt());
+        m_pDS->next();
+      }
+      m_pDS->close();
 
       CLog::Log(LOGDEBUG, "%s: Cleaning files table", __FUNCTION__);
       sql = "DELETE FROM files WHERE idFile IN " + filesToDelete;
@@ -8240,6 +8271,15 @@ void CVideoDatabase::CleanDatabase(CGUIDialogProgressBarHandle* handle, const se
         episodesToDelete += StringUtils::Format("%i,", *it);
       episodesToDelete = "(" + StringUtils::TrimRight(episodesToDelete, ",") + ")";
 
+      CLog::Log(LOGDEBUG, "%s: Loading tvshows with cleaned episodes", __FUNCTION__);
+      sql = "SELECT DISTINCT episode.idShow FROM episode WHERE idEpisode IN " + episodesToDelete;
+      m_pDS->query(sql.c_str());
+      while (!m_pDS->eof()) {
+        cacheUpdateTvShowIds.insert(m_pDS->fv(0).get_asInt());
+        m_pDS->next();
+      }
+      m_pDS->close();
+
       CLog::Log(LOGDEBUG, "%s: Cleaning episode table", __FUNCTION__);
       sql = "DELETE FROM episode WHERE idEpisode IN " + episodesToDelete;
       m_pDS->exec(sql.c_str());
@@ -8285,6 +8325,14 @@ void CVideoDatabase::CleanDatabase(CGUIDialogProgressBarHandle* handle, const se
     }
 
     CLog::Log(LOGDEBUG, "%s: Cleaning tvshow table", __FUNCTION__);
+    sql = "SELECT tvshow.idShow FROM tvshow WHERE NOT EXISTS (SELECT 1 FROM tvshowlinkpath WHERE tvshowlinkpath.idShow = tvshow.idShow)";
+    m_pDS->query(sql.c_str());
+    while (!m_pDS->eof())
+    {
+      cacheDeleteTvShowIds.insert(m_pDS->fv(0).get_asInt());
+      m_pDS->next();
+    }
+    m_pDS->close();
     sql = "DELETE FROM tvshow WHERE NOT EXISTS (SELECT 1 FROM tvshowlinkpath WHERE tvshowlinkpath.idShow = tvshow.idShow)";
     m_pDS->exec(sql.c_str());
 
@@ -8297,6 +8345,7 @@ void CVideoDatabase::CleanDatabase(CGUIDialogProgressBarHandle* handle, const se
     m_pDS->query(sql.c_str());
     while (!m_pDS->eof())
     {
+      cacheDeleteTvShowIds.insert(m_pDS->fv(0).get_asInt());
       tvshowIDs.push_back(m_pDS->fv(0).get_asInt());
       tvshowsToDelete += m_pDS->fv(0).get_asString() + ",";
       m_pDS->next();
@@ -8412,6 +8461,17 @@ void CVideoDatabase::CleanDatabase(CGUIDialogProgressBarHandle* handle, const se
     CLog::Log(LOGDEBUG, "%s: Cleaning set table", __FUNCTION__);
     sql = "DELETE FROM sets WHERE NOT EXISTS (SELECT 1 FROM movie WHERE movie.idSet = sets.idSet)";
     m_pDS->exec(sql.c_str());
+
+    CLog::Log(LOGDEBUG, "%s: Updating cache items", __FUNCTION__);
+    for(std::set<int>::const_iterator it = cacheUpdateTvShowIds.begin(); it != cacheUpdateTvShowIds.end(); ++it) {
+      if(cacheDeleteTvShowIds.find(*it) == cacheDeleteTvShowIds.end())
+        UpdateTvShowFileItemById(*it);
+    }
+
+    CLog::Log(LOGDEBUG, "%s: Deleting cache items", __FUNCTION__);
+    for(std::set<int>::const_iterator it = cacheDeleteTvShowIds.begin(); it != cacheDeleteTvShowIds.end(); ++it) {
+      sm_TvShowCache.ProcessAffectedTvShowFileItems(*it, NULL, false, true);
+    }
 
     CommitTransaction();
 
@@ -9509,9 +9569,6 @@ void CVideoDatabase::AnnounceUpdate(std::string content, int id)
 {
   CLog::Log(LOGDEBUG, "CVideoDatabase::AnnounceUpdate(%s, %d)", content, id);
 
-  if(content == "tvshows")
-    sm_TvShowCache.DirtyTvShowFileItemById(id);
-
   CVariant data;
   data["type"] = content;
   data["id"] = id;
@@ -10027,7 +10084,7 @@ void CVideoDatabase::UpdateTvShowFileItemById(int showId) {
     int fileItemCount = 0;
 
     VEC_FILEITEMPTR affectedFileItems;
-    sm_TvShowCache.getAffectedTvShowFileItems(showId, affectedFileItems, false);
+    sm_TvShowCache.ProcessAffectedTvShowFileItems(showId, &affectedFileItems, false, false);
 
     if(!affectedFileItems.empty()) {
       if(NULL == m_pDB.get()) return;
@@ -10110,21 +10167,28 @@ CTvShowCacheItem::~CTvShowCacheItem(void) {
 
 //********************************************************************************************************************************
 
-CTvShowCache::CTvShowCache(void) {
-  m_bIsDirty = false;
-}
+CTvShowCache::CTvShowCache(void) {}
 
 CTvShowCache::~CTvShowCache(void) {
   m_tvShowId2TvShowCacheItemPtrSet.clear();
   m_sqlQuery2TvShowCacheItemPtr.clear();
 }
 
-void CTvShowCache::DirtyTvShowFileItemById(int _showId) {
-  VEC_FILEITEMPTR affectedFileItems;
-  getAffectedTvShowFileItems(_showId, affectedFileItems, true);
+void CTvShowCache::DirtyAllTvShowCacheItems() {
+  CLog::Log(LOGDEBUG, "%s marking all caced file lists dirty", __FUNCTION__);
+
+  for(MAPI_STRING2TVSHOWCACHEITEMPTR tvShowCacheItemPtrIter = m_sqlQuery2TvShowCacheItemPtr.begin();
+      tvShowCacheItemPtrIter != m_sqlQuery2TvShowCacheItemPtr.end(); tvShowCacheItemPtrIter++) {
+    tvShowCacheItemPtrIter->second->SetDirty(true);
+  }
 }
 
-void CTvShowCache::getAffectedTvShowFileItems(int showId, VEC_FILEITEMPTR &affectedFileItems, bool dirty) {
+void CTvShowCache::DirtyTvShowFileItemById(int showId) {
+  ProcessAffectedTvShowFileItems(showId, NULL, true, false);
+}
+
+void CTvShowCache::ProcessAffectedTvShowFileItems(int showId, VEC_FILEITEMPTR *affectedFileItems, bool dirty, bool remove) {
+  unsigned int time = XbmcThreads::SystemClockMillis();
   MAPI_INT2TVSHOWCACHEITEMPTRSET tvShowId2TvShowCacheItemPtrSetIter = m_tvShowId2TvShowCacheItemPtrSet.find(showId);
 
   if(tvShowId2TvShowCacheItemPtrSetIter != m_tvShowId2TvShowCacheItemPtrSet.end()) {
@@ -10134,18 +10198,76 @@ void CTvShowCache::getAffectedTvShowFileItems(int showId, VEC_FILEITEMPTR &affec
         tvShowCacheSetIter != tvShowCacheItemPtrSet.end(); tvShowCacheSetIter++) {
       CTvShowCacheItemPtr tvShowCacheItemPtr(*tvShowCacheSetIter);
       if(dirty)
-        tvShowCacheItemPtr->m_bIsDirty = true;
+        tvShowCacheItemPtr->SetDirty(true);
 
       MAPI_INT2FILEITEMPTR tvShowId2FileItemPtrIter = tvShowCacheItemPtr->m_tvShowId2FileItemPtr.find(showId);
 
       if(tvShowId2FileItemPtrIter != tvShowCacheItemPtr->m_tvShowId2FileItemPtr.end()) {
         CFileItemPtr cacheFileItemPtr = tvShowId2FileItemPtrIter->second;
-        affectedFileItems.push_back(cacheFileItemPtr);
+
+        CLog::Log(LOGDEBUG, "%s on %s", __FUNCTION__, cacheFileItemPtr->GetPath());
+
+        if(affectedFileItems)
+          affectedFileItems->push_back(cacheFileItemPtr);
         if(dirty)
           cacheFileItemPtr->SetDirty(true);
+        if(remove) {
+          tvShowCacheItemPtr->m_fileItemListPtr->Remove(cacheFileItemPtr.get());
+          tvShowCacheItemPtr->m_tvShowId2FileItemPtr.erase(showId);
+          // Decrese 'total' property? Looks like it isn't necessary
+        }
       }
     }
+
+    if(remove)
+      m_tvShowId2TvShowCacheItemPtrSet.erase(showId);
   }
+
+  CLog::Log(LOGDEBUG, "%s took %d ms for showId %d", __FUNCTION__, XbmcThreads::SystemClockMillis() - time, showId);
 }
+
+//void CTvShowCache::ProcessAffectedTvShowFileItems(int showId, VEC_FILEITEMPTR &affectedFileItems, bool dirty) {
+//  MAPI_INT2TVSHOWCACHEITEMPTRSET tvShowId2TvShowCacheItemPtrSetIter = m_tvShowId2TvShowCacheItemPtrSet.find(showId);
+//
+//  if(tvShowId2TvShowCacheItemPtrSetIter != m_tvShowId2TvShowCacheItemPtrSet.end()) {
+//    SET_TVSHOWCACHEITEMPTR tvShowCacheItemPtrSet = tvShowId2TvShowCacheItemPtrSetIter->second;
+//
+//    for(SETI_TVSHOWCACHEITEMPTR tvShowCacheSetIter = tvShowCacheItemPtrSet.begin();
+//        tvShowCacheSetIter != tvShowCacheItemPtrSet.end(); tvShowCacheSetIter++) {
+//      CTvShowCacheItemPtr tvShowCacheItemPtr(*tvShowCacheSetIter);
+//      if(dirty)
+//        tvShowCacheItemPtr->SetDirty(true);
+//
+//      MAPI_INT2FILEITEMPTR tvShowId2FileItemPtrIter = tvShowCacheItemPtr->m_tvShowId2FileItemPtr.find(showId);
+//
+//      if(tvShowId2FileItemPtrIter != tvShowCacheItemPtr->m_tvShowId2FileItemPtr.end()) {
+//        CFileItemPtr cacheFileItemPtr = tvShowId2FileItemPtrIter->second;
+//        affectedFileItems.push_back(cacheFileItemPtr);
+//        if(dirty)
+//          cacheFileItemPtr->SetDirty(true);
+//      }
+//    }
+//  }
+//}
+
+//void CTvShowCache::removeAffectedTvShowFileItems(int showId) {
+//  MAPI_INT2TVSHOWCACHEITEMPTRSET tvShowId2TvShowCacheItemPtrSetIter = m_tvShowId2TvShowCacheItemPtrSet.find(showId);
+//
+//  if(tvShowId2TvShowCacheItemPtrSetIter != m_tvShowId2TvShowCacheItemPtrSet.end()) {
+//    SET_TVSHOWCACHEITEMPTR tvShowCacheItemPtrSet = tvShowId2TvShowCacheItemPtrSetIter->second;
+//
+//    for(SETI_TVSHOWCACHEITEMPTR tvShowCacheSetIter = tvShowCacheItemPtrSet.begin();
+//        tvShowCacheSetIter != tvShowCacheItemPtrSet.end(); tvShowCacheSetIter++) {
+//      CTvShowCacheItemPtr tvShowCacheItemPtr(*tvShowCacheSetIter);
+//
+//
+//
+//
+//
+//    }
+//
+//    m_tvShowId2TvShowCacheItemPtrSet.erase(showId);
+//  }
+//}
 
 

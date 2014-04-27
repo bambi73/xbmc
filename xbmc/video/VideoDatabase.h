@@ -347,10 +347,14 @@ public:
   virtual ~CTvShowCacheItem();
 
   bool IsDirty() const { return m_bIsDirty; }
+  void SetDirty(bool isDirty) { m_bIsDirty = isDirty; }
 
-  bool m_bIsDirty;
   CFileItemListPtr m_fileItemListPtr;
   MAP_INT2FILEITEMPTR m_tvShowId2FileItemPtr;
+
+private:
+  bool m_bIsDirty;
+
 };
 
 typedef boost::shared_ptr< CTvShowCacheItem > CTvShowCacheItemPtr;
@@ -374,17 +378,13 @@ public:
 	CTvShowCache();
   virtual ~CTvShowCache();
 
-  void getAffectedTvShowFileItems(int showId, VEC_FILEITEMPTR &affectedFileItems, bool dirty);
+  void ProcessAffectedTvShowFileItems(int showId, VEC_FILEITEMPTR *affectedFileItems, bool dirty, bool remove);
   void DirtyTvShowFileItemById(int showId);
 
-  bool IsDirty() const { return m_bIsDirty; }
-  void SetDirty(bool isDirty) { m_bIsDirty = isDirty; }
+  void DirtyAllTvShowCacheItems();
 
   MAP_STRING2TVSHOWCACHEITEMPTR m_sqlQuery2TvShowCacheItemPtr;
   MAP_INT2TVSHOWCACHEITEMPTRSET m_tvShowId2TvShowCacheItemPtrSet;
-
-private:
-  bool m_bIsDirty;
 
 };
 
@@ -526,7 +526,7 @@ public:
   void DeleteTvShow(int idTvShow, bool bKeepId = false);
   void DeleteTvShow(const CStdString& strPath, bool bKeepId = false, int idTvShow = -1);
   void DeleteEpisode(int idEpisode, bool bKeepId = false);
-  void DeleteEpisode(const CStdString& strFilenameAndPath, int idEpisode = -1, bool bKeepId = false);
+  void DeleteEpisode(const CStdString& strFilenameAndPath, int idEpisode = -1, bool bKeepId = false, bool bUpdateCache = true);
   void DeleteMusicVideo(int idMusicVideo, bool bKeepId = false);
   void DeleteMusicVideo(const CStdString& strFilenameAndPath, bool bKeepId = false, int idMVideo = -1);
   void DeleteDetailsForTvShow(const CStdString& strPath, int idTvShow = -1);
