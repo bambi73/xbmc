@@ -6000,9 +6000,6 @@ bool CVideoDatabase::GetTvShowsNav(const CStdString& strBaseDir, CFileItemList& 
 bool CVideoDatabase::GetTvShowsByWhere(const CStdString& strBaseDir, const Filter &filter, CFileItemList& items, const SortDescription &sortDescription /* = SortDescription() */)
 {
   unsigned int timeFull = XbmcThreads::SystemClockMillis();
-  unsigned int timePart = XbmcThreads::SystemClockMillis();
-  CLog::Log(LOGDEBUG, "%s started", "CVideoDatabase::GetTvShowsByWhere");
-
 
   try
   {
@@ -6034,34 +6031,19 @@ bool CVideoDatabase::GetTvShowsByWhere(const CStdString& strBaseDir, const Filte
 
     strSQL = PrepareSQL(strSQL, !extFilter.fields.empty() ? extFilter.fields.c_str() : "*") + strSQLExtra;
 
-    CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere prepare SQL", XbmcThreads::SystemClockMillis() - timePart);
-    timePart = XbmcThreads::SystemClockMillis();
-
-
-
     CTvShowCacheItemPtr cacheTvShowCacheItemPtr;
 
     MAPI_STRING2TVSHOWCACHEITEMPTR sqlQueryIter = sm_TvShowCache.m_sqlQuery2TvShowCacheItemPtr.find(strSQL);
     if(sqlQueryIter != sm_TvShowCache.m_sqlQuery2TvShowCacheItemPtr.end())
       cacheTvShowCacheItemPtr = sqlQueryIter->second;
 
-    CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere cache lookup", XbmcThreads::SystemClockMillis() - timePart);
-    timePart = XbmcThreads::SystemClockMillis();
-
     if(cacheTvShowCacheItemPtr && !cacheTvShowCacheItemPtr->IsDirty()) {
       items.Copy(*cacheTvShowCacheItemPtr->m_fileItemListPtr);
-
-      CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere cache copy", XbmcThreads::SystemClockMillis() - timePart);
       CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere", XbmcThreads::SystemClockMillis() - timeFull);
       return true;
     }
 
-
-
     int iRowsFound = RunQuery(strSQL);
-
-    CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere run SQL", XbmcThreads::SystemClockMillis() - timePart);
-    timePart = XbmcThreads::SystemClockMillis();
 
     if (iRowsFound <= 0)
       return iRowsFound == 0;
@@ -6077,22 +6059,10 @@ bool CVideoDatabase::GetTvShowsByWhere(const CStdString& strBaseDir, const Filte
     if (!SortUtils::SortFromDataset(sorting, MediaTypeTvShow, m_pDS, results))
       return false;
 
-    CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere Sorting", XbmcThreads::SystemClockMillis() - timePart);
-    timePart = XbmcThreads::SystemClockMillis();
-
-
-
-
     unsigned int timeFill = 0;
-    unsigned int timeSumPrepare = 0;
     unsigned int timeSumGetVideoTag = 0;
-    unsigned int timeSumChecks = 0;
-    unsigned int timeSumSetFromVideoTag = 0;
-    unsigned int timeSumRestA = 0;
-    unsigned int timeSumRestB = 0;
-    unsigned int timeSumRestC = 0;
-    unsigned int timeSumRestD = 0;
-    unsigned int timeSumRestE = 0;
+    unsigned int timeSumFillFileItem = 0;
+    unsigned int timePart = XbmcThreads::SystemClockMillis();
 
     CURL baseURL(strBaseDir);
     CStdString baseURLMain;
@@ -6129,9 +6099,6 @@ bool CVideoDatabase::GetTvShowsByWhere(const CStdString& strBaseDir, const Filte
     items.Reserve(results.size());
     cacheTvShowCacheItemPtr->m_fileItemListPtr->Reserve(results.size());
 
-    CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere cache preparation", XbmcThreads::SystemClockMillis() - timePart);
-    timePart = XbmcThreads::SystemClockMillis();
-
     const query_data &data = m_pDS->get_result_set().records;
     for (DatabaseResults::const_iterator it = results.begin(); it != results.end(); it++)
     {
@@ -6140,9 +6107,6 @@ bool CVideoDatabase::GetTvShowsByWhere(const CStdString& strBaseDir, const Filte
       unsigned int targetRow = (unsigned int)it->at(FieldRow).asInteger();
       const dbiplus::sql_record* const record = data.at(targetRow);
       int idTvShow = record->at(0).get_asInt();
-
-      timeSumPrepare += (XbmcThreads::SystemClockMillis() - timeFill);
-      timeFill = XbmcThreads::SystemClockMillis();
 
       if(!cacheInsertMode) {
         MAPI_INT2FILEITEMPTR tvShowId2FileItemPtrIter = cacheTvShowCacheItemPtr->m_tvShowId2FileItemPtr.find(idTvShow);
@@ -6172,9 +6136,6 @@ bool CVideoDatabase::GetTvShowsByWhere(const CStdString& strBaseDir, const Filte
       {
         pItem->SetFromVideoInfoTagFast(movie, "DefaultFolder.png");
 
-        timeSumSetFromVideoTag += (XbmcThreads::SystemClockMillis() - timeFill);
-        timeFill = XbmcThreads::SystemClockMillis();
-
         CStdString path;
         path.reserve(baseURLReserve);
         path = baseURLMain;
@@ -6184,9 +6145,6 @@ bool CVideoDatabase::GetTvShowsByWhere(const CStdString& strBaseDir, const Filte
 
         pItem->SetPath(path);
 
-        timeSumRestD += (XbmcThreads::SystemClockMillis() - timeFill);
-        timeFill = XbmcThreads::SystemClockMillis();
-
         pItem->SetOverlayImage(CGUIListItem::ICON_OVERLAY_UNWATCHED, (pItem->GetVideoInfoTag()->m_playCount > 0) && (pItem->GetVideoInfoTag()->m_iEpisode > 0));
         items.Add(pItem);
 
@@ -6194,52 +6152,22 @@ bool CVideoDatabase::GetTvShowsByWhere(const CStdString& strBaseDir, const Filte
         cacheTvShowCacheItemPtr->m_fileItemListPtr->Add(cacheItemPtr);
         cacheTvShowCacheItemPtr->m_tvShowId2FileItemPtr[idTvShow] = cacheItemPtr;
         sm_TvShowCache.m_tvShowId2TvShowCacheItemPtrSet[idTvShow].insert(cacheTvShowCacheItemPtr);
-
-//        CLog::Log(LOGDEBUG, "sm_TvShowCache.m_tvShowId2TvShowCacheItemPtrSet[%d].insert(cacheTvShowCacheItemPtr) return %s",
-//            idTvShow, (sm_TvShowCache.m_tvShowId2TvShowCacheItemPtrSet[idTvShow].insert(cacheTvShowCacheItemPtr).second ? "true" : "false"));
       }
 
-      timeSumRestE += (XbmcThreads::SystemClockMillis() - timeFill);
+      timeSumFillFileItem += (XbmcThreads::SystemClockMillis() - timeFill);
     }
 
-    CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere processing data - Prepare", timeSumPrepare);
     CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere processing data - GetVideoTag", timeSumGetVideoTag);
-    CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere processing data - SetFromVideoTag", timeSumSetFromVideoTag);
-    CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere processing data - RestB", timeSumRestB);
-    CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere processing data - RestD", timeSumRestD);
-    CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere processing data - RestE", timeSumRestE);
+    CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere processing data - FillFileItem", timeSumFillFileItem);
     CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere processing data", XbmcThreads::SystemClockMillis() - timePart);
 
-    CLog::Log(LOGDEBUG, "%s items.size() = %d (%d taken from cache)", __FUNCTION__, items.Size(), takenFromCache);
-    CLog::Log(LOGDEBUG, "%s cacheTvShowCacheItemPtr->m_fileItemListPtr->Size() = %d", __FUNCTION__, cacheTvShowCacheItemPtr->m_fileItemListPtr->Size());
+    CLog::Log(LOGDEBUG, "%s %d FileItems loaded (%d from cache)", __FUNCTION__, items.Size(), takenFromCache);
     timePart = XbmcThreads::SystemClockMillis();
 
-
-//    Stack(items, VIDEODB_CONTENT_TVSHOWS, !filter.order.empty() || sorting.sortBy != SortByNone);
-
-
-    CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere stack", XbmcThreads::SystemClockMillis() - timePart);
-    timePart = XbmcThreads::SystemClockMillis();
-
+    // Stack(items, VIDEODB_CONTENT_TVSHOWS, !filter.order.empty() || sorting.sortBy != SortByNone);
 
     // cleanup
     m_pDS->close();
-
-    CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere close", XbmcThreads::SystemClockMillis() - timePart);
-    timePart = XbmcThreads::SystemClockMillis();
-
-
-
-
-//    if(cacheInsertMode) {
-//      cacheTvShowCacheItemPtr->m_fileItemListPtr->Copy(items);
-//
-//      CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere caching", XbmcThreads::SystemClockMillis() - timePart);
-//      timePart = XbmcThreads::SystemClockMillis();
-//    }
-
-
-
 
     CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere", XbmcThreads::SystemClockMillis() - timeFull);
 
@@ -6254,156 +6182,6 @@ bool CVideoDatabase::GetTvShowsByWhere(const CStdString& strBaseDir, const Filte
 
   return false;
 }
-
-//bool CVideoDatabase::GetTvShowsByWhere2(const CStdString& strBaseDir, const Filter &filter, CFileItemList& items, const SortDescription &sortDescription /* = SortDescription() */)
-//{
-//  unsigned int timeFull = XbmcThreads::SystemClockMillis();
-//  unsigned int timePart = XbmcThreads::SystemClockMillis();
-//  CLog::Log(LOGDEBUG, "%s started", "CVideoDatabase::GetTvShowsByWhere");
-//
-//
-//  try
-//  {
-//    movieTime = 0;
-//
-//    if (NULL == m_pDB.get()) return false;
-//    if (NULL == m_pDS.get()) return false;
-//
-//    int total = -1;
-//
-//    CStdString strSQL = "SELECT %s FROM tvshowview ";
-//    CVideoDbUrl videoUrl;
-//    CStdString strSQLExtra;
-//    SortDescription sorting = sortDescription;
-//    Filter extFilter = filter;
-//    if(sorting.sortBy == SortByNone)
-//      extFilter.AppendOrder("c00");
-//    if (!BuildSQL(strBaseDir, strSQLExtra, extFilter, strSQLExtra, videoUrl, sorting))
-//      return false;
-//
-//    // Apply the limiting directly here if there's no special sorting but limiting
-//      if (extFilter.limit.empty() &&
-//        sorting.sortBy == SortByNone &&
-//        (sorting.limitStart > 0 || sorting.limitEnd > 0))
-//    {
-//      total = (int)strtol(GetSingleValue(PrepareSQL(strSQL, "COUNT(1)") + strSQLExtra, m_pDS).c_str(), NULL, 10);
-//      strSQLExtra += DatabaseUtils::BuildLimitClause(sorting.limitEnd, sorting.limitStart);
-//    }
-//
-//    strSQL = PrepareSQL(strSQL, !extFilter.fields.empty() ? extFilter.fields.c_str() : "*") + strSQLExtra;
-//
-//    CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere prepare SQL", XbmcThreads::SystemClockMillis() - timePart);
-//    timePart = XbmcThreads::SystemClockMillis();
-//
-//
-//
-//    int iRowsFound = RunQuery(strSQL);
-//
-//    CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere run SQL", XbmcThreads::SystemClockMillis() - timePart);
-//    timePart = XbmcThreads::SystemClockMillis();
-//
-//
-//
-//    if (iRowsFound <= 0)
-//      return iRowsFound == 0;
-//
-//    // store the total value of items as a property
-//    if (total < iRowsFound)
-//      total = iRowsFound;
-//    items.SetProperty("total", total);
-//
-//    DatabaseResults results;
-//    results.reserve(iRowsFound);
-//
-//    if (!SortUtils::SortFromDataset(sorting, MediaTypeTvShow, m_pDS, results))
-//      return false;
-//
-//
-//    CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere Sorting", XbmcThreads::SystemClockMillis() - timePart);
-//    timePart = XbmcThreads::SystemClockMillis();
-//
-//
-//
-//    unsigned int timeFill = 0;
-//    unsigned int timeSumGetVideoTag = 0;
-//    unsigned int timeSumSetFromVideoTag = 0;
-//    unsigned int timeSumRest = 0;
-//
-//
-//
-//    // get data from returned rows
-//    items.Reserve(results.size());
-//    const query_data &data = m_pDS->get_result_set().records;
-//    for (DatabaseResults::const_iterator it = results.begin(); it != results.end(); it++)
-//    {
-//      timeFill = XbmcThreads::SystemClockMillis();
-//
-//      unsigned int targetRow = (unsigned int)it->at(FieldRow).asInteger();
-//      const dbiplus::sql_record* const record = data.at(targetRow);
-//
-//      CFileItemPtr pItem(new CFileItem());
-//      CVideoInfoTag movie = GetDetailsForTvShow(record, false, pItem.get());
-//
-//      timeSumGetVideoTag += (XbmcThreads::SystemClockMillis() - timeFill);
-//      timeFill = XbmcThreads::SystemClockMillis();
-//
-//
-//      if ((CProfilesManager::Get().GetMasterProfile().getLockMode() == LOCK_MODE_EVERYONE ||
-//           g_passwordManager.bMasterUser                                     ||
-//           g_passwordManager.IsDatabasePathUnlocked(movie.m_strPath, *CMediaSourceSettings::Get().GetSources("video"))) &&
-//          (!g_advancedSettings.m_bVideoLibraryHideEmptySeries || movie.m_iEpisode > 0))
-//      {
-//        pItem->SetFromVideoInfoTag(movie);
-//
-//        timeSumSetFromVideoTag += (XbmcThreads::SystemClockMillis() - timeFill);
-//        timeFill = XbmcThreads::SystemClockMillis();
-//
-//        CVideoDbUrl itemUrl = videoUrl;
-//        CStdString path = StringUtils::Format("%ld/", record->at(0).get_asInt());
-//        itemUrl.AppendPath(path);
-//        pItem->SetPath(itemUrl.ToString());
-//
-//        pItem->SetOverlayImage(CGUIListItem::ICON_OVERLAY_UNWATCHED, (pItem->GetVideoInfoTag()->m_playCount > 0) && (pItem->GetVideoInfoTag()->m_iEpisode > 0));
-//        items.Add(pItem);
-//      }
-//
-//      timeSumRest += (XbmcThreads::SystemClockMillis() - timeFill);
-//    }
-//
-//    CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere processing data - GetVideoTag", timeSumGetVideoTag);
-//    CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere processing data - SetFromVideoTag", timeSumSetFromVideoTag);
-//    CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere processing data - Rest", timeSumRest);
-//    CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere processing data", XbmcThreads::SystemClockMillis() - timePart);
-//    timePart = XbmcThreads::SystemClockMillis();
-//
-//
-//    Stack(items, VIDEODB_CONTENT_TVSHOWS, !filter.order.empty() || sorting.sortBy != SortByNone);
-//
-//
-//    CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere stack", XbmcThreads::SystemClockMillis() - timePart);
-//    timePart = XbmcThreads::SystemClockMillis();
-//
-//
-//    // cleanup
-//    m_pDS->close();
-//
-//
-//    CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere close", XbmcThreads::SystemClockMillis() - timePart);
-//    timePart = XbmcThreads::SystemClockMillis();
-//
-//    CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere", XbmcThreads::SystemClockMillis() - timeFull);
-//
-//    return true;
-//  }
-//  catch (...)
-//  {
-//    CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
-//  }
-//
-//  CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere", XbmcThreads::SystemClockMillis() - timeFull);
-//
-//  return false;
-//}
 
 void CVideoDatabase::Stack(CFileItemList& items, VIDEODB_CONTENT_TYPE type, bool maintainSortOrder /* = false */)
 {
@@ -10225,49 +10003,3 @@ void CTvShowCache::ProcessAffectedTvShowFileItems(int showId, VEC_FILEITEMPTR *a
 
   CLog::Log(LOGDEBUG, "%s took %d ms for showId %d", __FUNCTION__, XbmcThreads::SystemClockMillis() - time, showId);
 }
-
-//void CTvShowCache::ProcessAffectedTvShowFileItems(int showId, VEC_FILEITEMPTR &affectedFileItems, bool dirty) {
-//  MAPI_INT2TVSHOWCACHEITEMPTRSET tvShowId2TvShowCacheItemPtrSetIter = m_tvShowId2TvShowCacheItemPtrSet.find(showId);
-//
-//  if(tvShowId2TvShowCacheItemPtrSetIter != m_tvShowId2TvShowCacheItemPtrSet.end()) {
-//    SET_TVSHOWCACHEITEMPTR tvShowCacheItemPtrSet = tvShowId2TvShowCacheItemPtrSetIter->second;
-//
-//    for(SETI_TVSHOWCACHEITEMPTR tvShowCacheSetIter = tvShowCacheItemPtrSet.begin();
-//        tvShowCacheSetIter != tvShowCacheItemPtrSet.end(); tvShowCacheSetIter++) {
-//      CTvShowCacheItemPtr tvShowCacheItemPtr(*tvShowCacheSetIter);
-//      if(dirty)
-//        tvShowCacheItemPtr->SetDirty(true);
-//
-//      MAPI_INT2FILEITEMPTR tvShowId2FileItemPtrIter = tvShowCacheItemPtr->m_tvShowId2FileItemPtr.find(showId);
-//
-//      if(tvShowId2FileItemPtrIter != tvShowCacheItemPtr->m_tvShowId2FileItemPtr.end()) {
-//        CFileItemPtr cacheFileItemPtr = tvShowId2FileItemPtrIter->second;
-//        affectedFileItems.push_back(cacheFileItemPtr);
-//        if(dirty)
-//          cacheFileItemPtr->SetDirty(true);
-//      }
-//    }
-//  }
-//}
-
-//void CTvShowCache::removeAffectedTvShowFileItems(int showId) {
-//  MAPI_INT2TVSHOWCACHEITEMPTRSET tvShowId2TvShowCacheItemPtrSetIter = m_tvShowId2TvShowCacheItemPtrSet.find(showId);
-//
-//  if(tvShowId2TvShowCacheItemPtrSetIter != m_tvShowId2TvShowCacheItemPtrSet.end()) {
-//    SET_TVSHOWCACHEITEMPTR tvShowCacheItemPtrSet = tvShowId2TvShowCacheItemPtrSetIter->second;
-//
-//    for(SETI_TVSHOWCACHEITEMPTR tvShowCacheSetIter = tvShowCacheItemPtrSet.begin();
-//        tvShowCacheSetIter != tvShowCacheItemPtrSet.end(); tvShowCacheSetIter++) {
-//      CTvShowCacheItemPtr tvShowCacheItemPtr(*tvShowCacheSetIter);
-//
-//
-//
-//
-//
-//    }
-//
-//    m_tvShowId2TvShowCacheItemPtrSet.erase(showId);
-//  }
-//}
-
-

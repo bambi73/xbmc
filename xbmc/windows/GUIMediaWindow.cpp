@@ -524,8 +524,6 @@ bool CGUIMediaWindow::OnMessage(CGUIMessage& message)
 // Override this function in a derived class to add new controls
 void CGUIMediaWindow::UpdateButtons()
 {
-	CLog::Log(LOGDEBUG, "%s started", "CGUIMediaWindow::UpdateButtons");
-
 	if (m_guiState.get())
   {
     // Update sorting controls
@@ -566,19 +564,13 @@ void CGUIMediaWindow::UpdateButtons()
   SET_CONTROL_LABEL(CONTROL_LABELFILES, items);
 
   SET_CONTROL_LABEL2(CONTROL_BTN_FILTER, GetProperty("filter").asString());
-
-  CLog::Log(LOGDEBUG, "%s finished", "CGUIMediaWindow::UpdateButtons");
 }
 
 void CGUIMediaWindow::ClearFileItems()
 {
-	CLog::Log(LOGDEBUG, "%s started", "CGUIMediaWindow::ClearFileItems");
-
 	m_viewControl.Clear();
   m_vecItems->Clear();
   m_unfilteredItems->Clear();
-
-	CLog::Log(LOGDEBUG, "%s finished", "CGUIMediaWindow::ClearFileItems");
 }
 
 // \brief Sorts Fileitems based on the sort method and sort oder provided by guiViewState
@@ -665,8 +657,7 @@ void CGUIMediaWindow::FormatAndSort(CFileItemList &items)
 bool CGUIMediaWindow::GetDirectory(const CStdString &strDirectory, CFileItemList &items)
 {
   unsigned int timeFull = XbmcThreads::SystemClockMillis();
- 	CLog::Log(LOGDEBUG, "%s started", "CGUIMediaWindow::GetDirectory");
-
+ 	CLog::Log(LOGDEBUG, "%s started", __FUNCTION__);
 
   // cleanup items
   if (items.Size())
@@ -692,14 +683,8 @@ bool CGUIMediaWindow::GetDirectory(const CStdString &strDirectory, CFileItemList
     if (strDirectory.empty())
       SetupShares();
 
-    CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIMediaWindow::GetDirectory:SetupShares()", XbmcThreads::SystemClockMillis() - timePart);
-    timePart = XbmcThreads::SystemClockMillis();
-
     if (!m_rootDir.GetDirectory(strDirectory, items))
       return false;
-
-    CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIMediaWindow::GetDirectory:GetDirectory()", XbmcThreads::SystemClockMillis() - timePart);
-    timePart = XbmcThreads::SystemClockMillis();
 
     // took over a second, and not normally cached, so cache it
     if ((XbmcThreads::SystemClockMillis() - time) > 1000  && items.CacheToDiscIfSlow() && false)
@@ -708,8 +693,6 @@ bool CGUIMediaWindow::GetDirectory(const CStdString &strDirectory, CFileItemList
     // if these items should replace the current listing, then pop it off the top
     if (items.GetReplaceListing())
       m_history.RemoveParentPath();
-
-    CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIMediaWindow::GetDirectory:Save()", XbmcThreads::SystemClockMillis() - timePart);
   }
 
   if (m_guiState.get() && !m_guiState->HideParentDirItems() && !items.GetPath().empty())
@@ -748,7 +731,7 @@ bool CGUIMediaWindow::GetDirectory(const CStdString &strDirectory, CFileItemList
   m_canFilterAdvanced = false;
   m_filter.Reset();
 
-  CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIMediaWindow::GetDirectory", XbmcThreads::SystemClockMillis() - timeFull);
+  CLog::Log(LOGDEBUG, "%s took %d ms ", __FUNCTION__, XbmcThreads::SystemClockMillis() - timeFull);
 
   return true;
 }
@@ -794,8 +777,8 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
   if (canfilter && url.HasOption("filter"))
     directory = RemoveParameterFromPath(directory, "filter");
 
-  CFileItemList items;
-  if (!GetDirectory(directory, items))
+  ClearFileItems();
+  if (!GetDirectory(directory, *m_vecItems))
   {
     CLog::Log(LOGERROR,"CGUIMediaWindow::GetDirectory(%s) failed", url.GetRedacted().c_str());
     // Try to return to the previous directory, if not the same
@@ -808,18 +791,51 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
     return false;
   }
 
-  if (items.GetLabel().empty())
-    items.SetLabel(CUtil::GetTitleFromPath(items.GetPath(), true));
-  
-  ClearFileItems();
-  m_vecItems->Copy(items);
+  CLog::Log(LOGDEBUG, "%s:%s took %d ms ", __FUNCTION__, "part 1a", XbmcThreads::SystemClockMillis() - timePart);
+  timePart = XbmcThreads::SystemClockMillis();
 
-  CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIMediaWindow::Update part 1", XbmcThreads::SystemClockMillis() - timePart);
+  if (m_vecItems->GetLabel().empty())
+    m_vecItems->SetLabel(CUtil::GetTitleFromPath(m_vecItems->GetPath(), true));
+  
+  CLog::Log(LOGDEBUG, "%s:%s took %d ms ", __FUNCTION__, "part 1b", XbmcThreads::SystemClockMillis() - timePart);
+  timePart = XbmcThreads::SystemClockMillis();
+
+  // check the given path for filter data
+  UpdateFilterPath(strDirectory, *m_vecItems, updateFilterPath);
+
+  CLog::Log(LOGDEBUG, "%s:%s took %d ms ", __FUNCTION__, "part 1c", XbmcThreads::SystemClockMillis() - timePart);
   timePart = XbmcThreads::SystemClockMillis();
 
 
-  // check the given path for filter data
-  UpdateFilterPath(strDirectory, items, updateFilterPath);
+//  CFileItemList items;
+//  if (!GetDirectory(directory, items))
+//  {
+//    CLog::Log(LOGERROR,"CGUIMediaWindow::GetDirectory(%s) failed", url.GetRedacted().c_str());
+//    // Try to return to the previous directory, if not the same
+//    // else fallback to root
+//    if (strDirectory.Equals(strCurrentDirectory) || !Update(m_history.RemoveParentPath()))
+//      Update(""); // Fallback to root
+//
+//    // Return false to be able to eg. show
+//    // an error message.
+//    return false;
+//  }
+//
+//  CLog::Log(LOGDEBUG, "%s:%s took %d ms ", __FUNCTION__, "part 1a", XbmcThreads::SystemClockMillis() - timePart);
+//  timePart = XbmcThreads::SystemClockMillis();
+//
+//
+//  if (items.GetLabel().empty())
+//    items.SetLabel(CUtil::GetTitleFromPath(items.GetPath(), true));
+//
+//  ClearFileItems();
+//  m_vecItems->Copy(items);
+//
+//  CLog::Log(LOGDEBUG, "%s:%s took %d ms ", __FUNCTION__, "part 1b", XbmcThreads::SystemClockMillis() - timePart);
+//  timePart = XbmcThreads::SystemClockMillis();
+//
+//  // check the given path for filter data
+//  UpdateFilterPath(strDirectory, items, updateFilterPath);
     
   // if we're getting the root source listing
   // make sure the path history is clean
@@ -981,11 +997,7 @@ bool CGUIMediaWindow::Refresh(bool clearCache /* = false */)
 // It's used to load tag info for music.
 void CGUIMediaWindow::OnPrepareFileItems(CFileItemList &items)
 {
-	CLog::Log(LOGDEBUG, "%s started", "CGUIMediaWindow::OnPrepareFileItems");
-
 	CFileItemListModification::Get().Modify(items);
-
-	CLog::Log(LOGDEBUG, "%s finished", "CGUIMediaWindow::OnPrepareFileItems");
 }
 
 // \brief This function will be called by Update() before
@@ -993,13 +1005,9 @@ void CGUIMediaWindow::OnPrepareFileItems(CFileItemList &items)
 // Override this function to define a custom caching behaviour.
 void CGUIMediaWindow::OnCacheFileItems(CFileItemList &items)
 {
-	CLog::Log(LOGDEBUG, "%s started", "CGUIMediaWindow::OnCacheFileItems");
-
 	// Should these items be saved to the hdd
   if (items.CacheToDiscAlways() && !IsFiltered())
     items.Save(GetID());
-
-	CLog::Log(LOGDEBUG, "%s finished", "CGUIMediaWindow::OnCacheFileItems");
 }
 
 // \brief This function will be called by Update() after the

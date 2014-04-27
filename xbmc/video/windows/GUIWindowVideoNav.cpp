@@ -269,17 +269,15 @@ CStdString CGUIWindowVideoNav::GetQuickpathName(const CStdString& strPath) const
 
 bool CGUIWindowVideoNav::GetDirectory(const CStdString &strDirectory, CFileItemList &items)
 {
+  unsigned int timeFull = XbmcThreads::SystemClockMillis();
+  CLog::Log(LOGDEBUG, "%s started", __FUNCTION__);
+
   if (m_thumbLoader.IsLoading())
     m_thumbLoader.StopThread();
 
   items.ClearProperties();
 
-  unsigned int time = XbmcThreads::SystemClockMillis();
   bool bResult = CGUIWindowVideoBase::GetDirectory(strDirectory, items);
-  CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIWindowVideoNav::GetDirectory", XbmcThreads::SystemClockMillis() - time);
-
-  time = XbmcThreads::SystemClockMillis();
-
   if (bResult)
   {
     if (items.IsVideoDb())
@@ -434,8 +432,7 @@ bool CGUIWindowVideoNav::GetDirectory(const CStdString &strDirectory, CFileItemL
     }
   }
 
-  CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIWindowVideoNav::GetDirectory", XbmcThreads::SystemClockMillis() - time);
-
+  CLog::Log(LOGDEBUG, "%s took %d ms ", __FUNCTION__, XbmcThreads::SystemClockMillis() - timeFull);
 
   return bResult;
 }

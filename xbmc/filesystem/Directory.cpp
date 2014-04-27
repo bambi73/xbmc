@@ -127,6 +127,8 @@ bool CDirectory::GetDirectory(const CStdString& strPath, CFileItemList &items, c
 
 bool CDirectory::GetDirectory(const CStdString& strPath, CFileItemList &items, const CHints &hints, bool allowThreads)
 {
+  unsigned int timeFull = XbmcThreads::SystemClockMillis();
+
   try
   {
     CStdString realPath = URIUtils::SubstitutePath(strPath);
@@ -135,8 +137,10 @@ bool CDirectory::GetDirectory(const CStdString& strPath, CFileItemList &items, c
       return false;
 
     // check our cache for this path
-    if (g_directoryCache.GetDirectory(realPath, items, (hints.flags & DIR_FLAG_READ_CACHE) == DIR_FLAG_READ_CACHE))
+    if (!(hints.flags & DIR_FLAG_BYPASS_CACHE) &&
+        g_directoryCache.GetDirectory(realPath, items, (hints.flags & DIR_FLAG_READ_CACHE) == DIR_FLAG_READ_CACHE)) {
       items.SetPath(strPath);
+    }
     else
     {
       // need to clear the cache (in case the directory fetch fails)
@@ -232,6 +236,8 @@ bool CDirectory::GetDirectory(const CStdString& strPath, CFileItemList &items, c
         item->SetPath(URIUtils::SubstitutePath(item->GetPath(), true));
       }
     }
+
+    CLog::Log(LOGDEBUG, "%s took %d ms ", __FUNCTION__, XbmcThreads::SystemClockMillis() - timeFull);
 
     return true;
   }

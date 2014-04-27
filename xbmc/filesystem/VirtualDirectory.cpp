@@ -75,6 +75,8 @@ bool CVirtualDirectory::GetDirectory(const CStdString& strPath, CFileItemList &i
 bool CVirtualDirectory::GetDirectory(const CStdString& strPath, CFileItemList &items, bool bUseFileDirectories)
 {
   int flags = m_flags;
+  if (!(flags & DIR_FLAG_READ_CACHE))
+    flags |= DIR_FLAG_BYPASS_CACHE;
   if (!bUseFileDirectories)
     flags |= DIR_FLAG_NO_FILE_DIRS;
   if (!strPath.empty() && strPath != "files://")
