@@ -590,8 +590,21 @@ void CGUIWindowVideoNav::UpdateButtons()
 
 bool CGUIWindowVideoNav::GetFilteredItems(const CStdString &filter, CFileItemList &items)
 {
+  unsigned int timeFull = XbmcThreads::SystemClockMillis();
+  unsigned int timePart = XbmcThreads::SystemClockMillis();
+  CLog::Log(LOGDEBUG, "%s started", __FUNCTION__);
+  CLog::Log(LOGDEBUG, "%s items size before: %d", __FUNCTION__, items.Size());
+
   bool listchanged = CGUIMediaWindow::GetFilteredItems(filter, items);
+
+  CLog::Log(LOGDEBUG, "%s items size after: %d", __FUNCTION__, items.Size());
+  CLog::Log(LOGDEBUG, "%s:%s took %d ms", __FUNCTION__, "GetFilteredItems", XbmcThreads::SystemClockMillis() - timePart);
+  timePart = XbmcThreads::SystemClockMillis();
+
   listchanged |= ApplyWatchedFilter(items);
+
+  CLog::Log(LOGDEBUG, "%s:%s took %d ms", __FUNCTION__, "ApplyWatchedFilter", XbmcThreads::SystemClockMillis() - timePart);
+  CLog::Log(LOGDEBUG, "%s took %d ms", __FUNCTION__, XbmcThreads::SystemClockMillis() - timeFull);
 
   return listchanged;
 }
@@ -1217,3 +1230,18 @@ bool CGUIWindowVideoNav::ApplyWatchedFilter(CFileItemList &items)
 
   return listchanged;
 }
+
+void CGUIWindowVideoNav::GetDirectoryHistoryString(const CFileItem* pItem, CStdString& strHistoryString) {
+  if (pItem->m_bIsShareOrDrive || (pItem->m_lEndOffset>pItem->m_lStartOffset && pItem->m_lStartOffset != -1) || !pItem->HasVideoInfoTag()) {
+    CGUIMediaWindow::GetDirectoryHistoryString(pItem, strHistoryString);
+  }
+  else {
+    strHistoryString = StringUtils::Format("%d",pItem->GetVideoInfoTag()->m_iDbId);
+  }
+}
+
+
+
+
+
+

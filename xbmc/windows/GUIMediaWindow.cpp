@@ -110,6 +110,11 @@ CGUIMediaWindow::~CGUIMediaWindow()
 #define CONTROL_VIEW_START        50
 #define CONTROL_VIEW_END          59
 
+int timeSumPrepare;
+int timeSumRemoveFilter;
+int timeSumRemoveSlash;
+int timeSumToLower;
+
 void CGUIMediaWindow::LoadAdditionalTags(TiXmlElement *root)
 {
   CGUIWindow::LoadAdditionalTags(root);
@@ -756,17 +761,19 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
   // get selected item
   int iItem = m_viewControl.GetSelectedItem();
   CStdString strSelectedItem = "";
+  int iSelectedItemIndex = -1;
   if (iItem >= 0 && iItem < m_vecItems->Size())
   {
     CFileItemPtr pItem = m_vecItems->Get(iItem);
     if (!pItem->IsParentFolder())
     {
       GetDirectoryHistoryString(pItem.get(), strSelectedItem);
+      iSelectedItemIndex = iItem;
     }
   }
   
   CStdString strCurrentDirectory = m_vecItems->GetPath();
-  m_history.SetSelectedItem(strSelectedItem, strCurrentDirectory);
+  m_history.SetSelectedItem(strSelectedItem, strCurrentDirectory, iSelectedItemIndex);
 
   CStdString directory = strDirectory;
   // check if the path contains a filter and temporarily remove it
@@ -925,25 +932,42 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
 
 
 
-  strSelectedItem = m_history.GetSelectedItem(m_vecItems->GetPath());
-  CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIMediaWindow::Update part 5.1", XbmcThreads::SystemClockMillis() - timePart);
+  timeSumPrepare = 0;
+  timeSumRemoveFilter = 0;
+  timeSumRemoveSlash = 0;
+  timeSumToLower = 0;
 
   bool bSelectedFound = false;
-  //int iSongInDirectory = -1;
-  for (int i = 0; i < m_vecItems->Size(); ++i)
-  {
-    CFileItemPtr pItem = m_vecItems->Get(i);
+  strSelectedItem = m_history.GetSelectedItem(m_vecItems->GetPath());
+//  if(strSelectedItem != StringUtils::EmptyString) {
+    iSelectedItemIndex = m_history.GetSelectedItemIndex(m_vecItems->GetPath());
+//    if(iSelectedItemIndex < 0)
+      iSelectedItemIndex = 0;
 
-    // Update selected item
-    CStdString strHistory;
-    GetDirectoryHistoryString(pItem.get(), strHistory);
-    if (strHistory == strSelectedItem)
-    {
-      m_viewControl.SetSelectedItem(i);
-      bSelectedFound = true;
-      break;
+    for(int i = 0; iSelectedItemIndex - (i + 1) / 2 >= 0 || iSelectedItemIndex + i / 2 < m_vecItems->Size(); ++i) {
+      int index = (i % 2 == 0 ? iSelectedItemIndex + i / 2 : iSelectedItemIndex - (i + 1) / 2);
+      if(index < 0 || index >= m_vecItems->Size())
+        continue;
+
+      CFileItemPtr pItem = m_vecItems->Get(index);
+
+      // Update selected item
+      CStdString strHistory;
+      GetDirectoryHistoryString(pItem.get(), strHistory);
+      if (strHistory == strSelectedItem)
+      {
+        m_viewControl.SetSelectedItem(index);
+        bSelectedFound = true;
+        break;
+      }
     }
-  }
+//  }
+
+  CLog::Log(LOGDEBUG, "%s:%s - %s took %d ms" , __FUNCTION__, "part 5", "Prepare", timeSumPrepare);
+  CLog::Log(LOGDEBUG, "%s:%s - %s took %d ms" , __FUNCTION__, "part 5", "RemoveFilter", timeSumRemoveFilter);
+  CLog::Log(LOGDEBUG, "%s:%s - %s took %d ms" , __FUNCTION__, "part 5", "RemoveSlash", timeSumRemoveSlash);
+  CLog::Log(LOGDEBUG, "%s:%s - %s took %d ms" , __FUNCTION__, "part 5", "ToLower", timeSumToLower);
+
 
   CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIMediaWindow::Update part 5", XbmcThreads::SystemClockMillis() - timePart);
   timePart = XbmcThreads::SystemClockMillis();
@@ -1288,6 +1312,8 @@ void CGUIMediaWindow::GoParentFolder()
 // a selected item history should look like
 void CGUIMediaWindow::GetDirectoryHistoryString(const CFileItem* pItem, CStdString& strHistoryString)
 {
+  int timePart = XbmcThreads::SystemClockMillis();
+
   if (pItem->m_bIsShareOrDrive)
   {
     // We are in the virual directory
@@ -1336,12 +1362,24 @@ void CGUIMediaWindow::GetDirectoryHistoryString(const CFileItem* pItem, CStdStri
     strHistoryString = pItem->GetPath();
   }
 
+  timeSumPrepare += XbmcThreads::SystemClockMillis() - timePart;
+  timePart = XbmcThreads::SystemClockMillis();
+
   // remove any filter
   if (CanContainFilter(strHistoryString))
     strHistoryString = RemoveParameterFromPath(strHistoryString, "filter");
 
+  timeSumRemoveFilter += XbmcThreads::SystemClockMillis() - timePart;
+  timePart = XbmcThreads::SystemClockMillis();
+
   URIUtils::RemoveSlashAtEnd(strHistoryString);
+
+  timeSumRemoveSlash += XbmcThreads::SystemClockMillis() - timePart;
+  timePart = XbmcThreads::SystemClockMillis();
+
   StringUtils::ToLower(strHistoryString);
+
+  timeSumToLower += XbmcThreads::SystemClockMillis() - timePart;
 }
 
 // \brief Call this function to create a directory history for the
@@ -1839,15 +1877,26 @@ void CGUIMediaWindow::OnFilterItems(const CStdString &filter)
     currentItemPath = currentItem->GetPath();
   }
   
+  CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIMediaWindow::OnFilterItems part 1a", XbmcThreads::SystemClockMillis() - timePart);
+  timePart = XbmcThreads::SystemClockMillis();
+
   m_viewControl.Clear();
   
   CFileItemList items;
   items.Copy(*m_vecItems, false); // use the original path - it'll likely be relied on for other things later.
+
+  CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIMediaWindow::OnFilterItems part 1b", XbmcThreads::SystemClockMillis() - timePart);
+  timePart = XbmcThreads::SystemClockMillis();
+
   items.Append(*m_unfilteredItems);
+
+  CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIMediaWindow::OnFilterItems part 1c", XbmcThreads::SystemClockMillis() - timePart);
+  timePart = XbmcThreads::SystemClockMillis();
+
   bool filtered = GetFilteredItems(filter, items);
 
 
-  CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIMediaWindow::OnFilterItems part 1", XbmcThreads::SystemClockMillis() - timePart);
+  CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIMediaWindow::OnFilterItems part 1d", XbmcThreads::SystemClockMillis() - timePart);
   timePart = XbmcThreads::SystemClockMillis();
 
 

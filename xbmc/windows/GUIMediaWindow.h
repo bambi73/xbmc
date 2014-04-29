@@ -133,7 +133,7 @@ protected:
   virtual bool HaveDiscOrConnection(const CStdString& strPath, int iDriveType);
   void ShowShareErrorMessage(CFileItem* pItem);
 
-  void GetDirectoryHistoryString(const CFileItem* pItem, CStdString& strHistoryString);
+  virtual void GetDirectoryHistoryString(const CFileItem* pItem, CStdString& strHistoryString);
   void SetHistoryForPath(const CStdString& strDirectory);
   virtual void LoadPlayList(const CStdString& strFileName) {}
   virtual bool OnPlayMedia(int iItem);

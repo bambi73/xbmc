@@ -68,5 +68,7 @@ protected:
 
   virtual CStdString GetQuickpathName(const CStdString& strPath) const;
 
+  virtual void GetDirectoryHistoryString(const CFileItem* pItem, CStdString& strHistoryString);
+
   VECSOURCES m_shares;
 };
