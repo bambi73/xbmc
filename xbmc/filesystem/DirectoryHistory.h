@@ -31,7 +31,6 @@ public:
   public:
     CHistoryItem(){};
     virtual ~CHistoryItem(){};
-    int m_iItemIndex;
     CStdString m_strItem;
     CStdString m_strDirectory;
   };
@@ -51,9 +50,8 @@ public:
   CDirectoryHistory() { }
   virtual ~CDirectoryHistory();
 
-  void SetSelectedItem(const CStdString& strSelectedItem, const CStdString& strDirectory, const int iSelectedItemIndex = -1);
+  void SetSelectedItem(const CStdString& strSelectedItem, const CStdString& strDirectory);
   const CStdString& GetSelectedItem(const CStdString& strDirectory) const;
-  const int GetSelectedItemIndex(const CStdString& strDirectory) const;
   void RemoveSelectedItem(const CStdString& strDirectory);
 
   void AddPath(const CStdString& strPath, const CStdString &m_strFilterPath = "");
