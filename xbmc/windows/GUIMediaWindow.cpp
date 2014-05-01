@@ -1863,37 +1863,37 @@ void CGUIMediaWindow::OnFilterItems(const CStdString &filter)
 
   // apply the "filter" option to any folder item so that
   // the filter can be passed down to the sub-directory
-  for (int index = 0; index < m_vecItems->Size(); index++)
-  {
-  	timeFill = XbmcThreads::SystemClockMillis();
-
-    CFileItemPtr pItem = m_vecItems->Get(index);
-
-    timeSumGetByIndex += (XbmcThreads::SystemClockMillis() - timeFill);
-    timeFill = XbmcThreads::SystemClockMillis();
-
-    // if the item is a folder we need to copy the path of
-    // the filtered item to be able to keep the applied filters
-    if (pItem->m_bIsFolder)
-    {
-      CURL itemUrl(pItem->GetPath());
-
-      timeSumItemURL += (XbmcThreads::SystemClockMillis() - timeFill);
-      timeFill = XbmcThreads::SystemClockMillis();
-
-      if (!filterOption.empty())
-        itemUrl.SetOption("filter", filterOption);
-      else
-        itemUrl.RemoveOption("filter");
-
-      timeSumSetOption += (XbmcThreads::SystemClockMillis() - timeFill);
-      timeFill = XbmcThreads::SystemClockMillis();
-
-      pItem->SetPath(itemUrl.Get());
-
-      timeSumSetPath += (XbmcThreads::SystemClockMillis() - timeFill);
-    }
-  }
+//  for (int index = 0; index < m_vecItems->Size(); index++)
+//  {
+//  	timeFill = XbmcThreads::SystemClockMillis();
+//
+//    CFileItemPtr pItem = m_vecItems->Get(index);
+//
+//    timeSumGetByIndex += (XbmcThreads::SystemClockMillis() - timeFill);
+//    timeFill = XbmcThreads::SystemClockMillis();
+//
+//    // if the item is a folder we need to copy the path of
+//    // the filtered item to be able to keep the applied filters
+//    if (pItem->m_bIsFolder)
+//    {
+//      CURL itemUrl(pItem->GetPath());
+//
+//      timeSumItemURL += (XbmcThreads::SystemClockMillis() - timeFill);
+//      timeFill = XbmcThreads::SystemClockMillis();
+//
+//      if (!filterOption.empty())
+//        itemUrl.SetOption("filter", filterOption);
+//      else
+//        itemUrl.RemoveOption("filter");
+//
+//      timeSumSetOption += (XbmcThreads::SystemClockMillis() - timeFill);
+//      timeFill = XbmcThreads::SystemClockMillis();
+//
+//      pItem->SetPath(itemUrl.Get());
+//
+//      timeSumSetPath += (XbmcThreads::SystemClockMillis() - timeFill);
+//    }
+//  }
 
   CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIMediaWindow::OnFilterItems part 4.2 - GetByIndex", timeSumGetByIndex);
   CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIMediaWindow::OnFilterItems part 4.2 - ItemURL", timeSumItemURL);
@@ -1904,22 +1904,22 @@ void CGUIMediaWindow::OnFilterItems(const CStdString &filter)
 
 
   SetProperty("filter", filter);
-  if (filtered && m_canFilterAdvanced)
-  {
-    // to be able to select the same item as before we need to adjust
-    // the path of the item i.e. add or remove the "filter=" URL option
-    // but that's only necessary for folder items
-    if (currentItem.get() != NULL && currentItem->m_bIsFolder)
-    {
-      CURL curUrl(currentItemPath), newUrl(m_strFilterPath);
-      if (newUrl.HasOption("filter"))
-        curUrl.SetOption("filter", newUrl.GetOption("filter"));
-      else if (curUrl.HasOption("filter"))
-        curUrl.RemoveOption("filter");
-
-      currentItemPath = curUrl.Get();
-    }
-  }
+//  if (filtered && m_canFilterAdvanced)
+//  {
+//    // to be able to select the same item as before we need to adjust
+//    // the path of the item i.e. add or remove the "filter=" URL option
+//    // but that's only necessary for folder items
+//    if (currentItem.get() != NULL && currentItem->m_bIsFolder)
+//    {
+//      CURL curUrl(currentItemPath), newUrl(m_strFilterPath);
+//      if (newUrl.HasOption("filter"))
+//        curUrl.SetOption("filter", newUrl.GetOption("filter"));
+//      else if (curUrl.HasOption("filter"))
+//        curUrl.RemoveOption("filter");
+//
+//      currentItemPath = curUrl.Get();
+//    }
+//  }
 
   CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIMediaWindow::OnFilterItems part 5", XbmcThreads::SystemClockMillis() - timePart);
   timePart = XbmcThreads::SystemClockMillis();

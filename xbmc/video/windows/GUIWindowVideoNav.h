@@ -21,6 +21,7 @@
  */
 
 #include "GUIWindowVideoBase.h"
+#include "video/BackgroundFilterProcessor.h"
 
 class CFileItemList;
 
@@ -64,6 +65,7 @@ protected:
   virtual void GetContextButtons(int itemNumber, CContextButtons &buttons);
   virtual bool OnContextButton(int itemNumber, CONTEXT_BUTTON button);
   virtual bool OnClick(int iItem);
+  virtual void OnFilterItems(const CStdString &filter);
   virtual CStdString GetStartFolder(const CStdString &dir);
 
   virtual CStdString GetQuickpathName(const CStdString& strPath) const;
@@ -71,4 +73,6 @@ protected:
   virtual void GetDirectoryHistoryString(const CFileItem* pItem, CStdString& strHistoryString);
 
   VECSOURCES m_shares;
+
+  CBackgroundFilterProcessor m_backgroundFilterProcessor;
 };

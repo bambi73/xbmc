@@ -112,7 +112,7 @@ protected:
    \param filter the filter to use.
    \sa FilterItems
    */
-  void OnFilterItems(const CStdString &filter);
+  virtual void OnFilterItems(const CStdString &filter);
 
   /* \brief Retrieve the filtered item list
    \param filter filter to apply

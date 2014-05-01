@@ -83,6 +83,7 @@ bool CGUIWindowManager::SendMessage(CGUIMessage& message)
   if (message.GetMessage()==GUI_MSG_NOTIFY_ALL)
   {
     CSingleLock lock(g_graphicsContext);
+    CLog::Log(LOGDEBUG,"SendMessage started: mess=%d send=%d control=%d param1=%d", message.GetMessage(), message.GetSenderId(), message.GetControlId(), message.GetParam1());
     for (rDialog it = m_activeDialogs.rbegin(); it != m_activeDialogs.rend(); ++it)
     {
       CGUIWindow *dialog = *it;
@@ -94,6 +95,7 @@ bool CGUIWindowManager::SendMessage(CGUIMessage& message)
       CGUIWindow *pWindow = (*it).second;
       pWindow->OnMessage(message);
     }
+    CLog::Log(LOGDEBUG,"SendMessage finished: mess=%d send=%d control=%d param1=%d", message.GetMessage(), message.GetSenderId(), message.GetControlId(), message.GetParam1());
     return true;
   }
 

@@ -136,3 +136,6 @@
 // Sent to text field to support 'input method'
 #define GUI_MSG_INPUT_TEXT            GUI_MSG_USER + 37
 #define GUI_MSG_INPUT_TEXT_EDIT       GUI_MSG_USER + 38
+
+#define GUI_MSG_FILTER_ITEMS_FILTERED GUI_MSG_USER + 50
+
