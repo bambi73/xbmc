@@ -1135,7 +1135,6 @@
     <ClInclude Include="..\..\xbmc\utils\uXstrings.h" />
     <ClInclude Include="..\..\xbmc\utils\Vector.h" />
     <ClInclude Include="..\..\xbmc\utils\XSLTUtils.h" />
-    <ClInclude Include="..\..\xbmc\video\BackgroundFilterProcessor.h" />
     <ClInclude Include="..\..\xbmc\video\FFmpegVideoDecoder.h" />
     <ClInclude Include="..\..\xbmc\interfaces\python\swig.h" />
     <ClInclude Include="..\..\xbmc\interfaces\python\XBPython.h" />
@@ -1287,7 +1286,6 @@
     <ClCompile Include="..\..\xbmc\utils\Utf8Utils.cpp" />
     <ClCompile Include="..\..\xbmc\utils\Vector.cpp" />
     <ClCompile Include="..\..\xbmc\utils\XSLTUtils.cpp" />
-    <ClCompile Include="..\..\xbmc\video\BackgroundFilterProcessor.cpp" />
     <ClCompile Include="..\..\xbmc\video\PlayerController.cpp" />
     <ClCompile Include="..\..\xbmc\video\VideoThumbLoader.cpp" />
     <ClCompile Include="..\..\xbmc\music\MusicThumbLoader.cpp" />

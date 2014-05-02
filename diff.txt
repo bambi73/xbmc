@@ -1,3 +1,50 @@
+diff --git a/diff.txt b/diff.txt
+new file mode 100644
+index 0000000..e69de29
+diff --git a/project/VS2010Express/XBMC.vcxproj b/project/VS2010Express/XBMC.vcxproj
+index c640130..30d91b0 100644
+--- a/project/VS2010Express/XBMC.vcxproj
++++ b/project/VS2010Express/XBMC.vcxproj
+@@ -1135,6 +1135,7 @@
+     <ClInclude Include="..\..\xbmc\utils\uXstrings.h" />
+     <ClInclude Include="..\..\xbmc\utils\Vector.h" />
+     <ClInclude Include="..\..\xbmc\utils\XSLTUtils.h" />
++    <ClInclude Include="..\..\xbmc\video\BackgroundFilterProcessor.h" />
+     <ClInclude Include="..\..\xbmc\video\FFmpegVideoDecoder.h" />
+     <ClInclude Include="..\..\xbmc\interfaces\python\swig.h" />
+     <ClInclude Include="..\..\xbmc\interfaces\python\XBPython.h" />
+@@ -1286,6 +1287,7 @@
+     <ClCompile Include="..\..\xbmc\utils\Utf8Utils.cpp" />
+     <ClCompile Include="..\..\xbmc\utils\Vector.cpp" />
+     <ClCompile Include="..\..\xbmc\utils\XSLTUtils.cpp" />
++    <ClCompile Include="..\..\xbmc\video\BackgroundFilterProcessor.cpp" />
+     <ClCompile Include="..\..\xbmc\video\PlayerController.cpp" />
+     <ClCompile Include="..\..\xbmc\video\VideoThumbLoader.cpp" />
+     <ClCompile Include="..\..\xbmc\music\MusicThumbLoader.cpp" />
+diff --git a/project/VS2010Express/XBMC.vcxproj.filters b/project/VS2010Express/XBMC.vcxproj.filters
+index b536eb3..a4c997f 100644
+--- a/project/VS2010Express/XBMC.vcxproj.filters
++++ b/project/VS2010Express/XBMC.vcxproj.filters
+@@ -3104,6 +3104,9 @@
+     <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Video\DVDVideoCodec.cpp">
+       <Filter>cores\dvdplayer\DVDCodecs\Video</Filter>
+     </ClCompile>
++    <ClCompile Include="..\..\xbmc\video\BackgroundFilterProcessor.cpp">
++      <Filter>video</Filter>
++    </ClCompile>
+   </ItemGroup>
+   <ItemGroup>
+     <ClInclude Include="..\..\xbmc\win32\pch.h">
+@@ -6094,6 +6097,9 @@
+     <ClInclude Include="..\..\xbmc\win32\IMMNotificationClient.h">
+       <Filter>win32</Filter>
+     </ClInclude>
++    <ClInclude Include="..\..\xbmc\video\BackgroundFilterProcessor.h">
++      <Filter>video</Filter>
++    </ClInclude>
+   </ItemGroup>
+   <ItemGroup>
+     <ResourceCompile Include="..\..\xbmc\win32\XBMC_PC.rc">
 diff --git a/xbmc/FileItem.cpp b/xbmc/FileItem.cpp
 index eb0e4a5..330f4d4 100644
 --- a/xbmc/FileItem.cpp
@@ -833,10 +880,27 @@ index 9f84b23..ae17f4c 100644
 +
  };
 diff --git a/xbmc/video/windows/GUIWindowVideoNav.cpp b/xbmc/video/windows/GUIWindowVideoNav.cpp
-index 60f3ad35..2d718e3 100644
+index 60f3ad35..10045c7 100644
 --- a/xbmc/video/windows/GUIWindowVideoNav.cpp
 +++ b/xbmc/video/windows/GUIWindowVideoNav.cpp
-@@ -269,6 +269,9 @@ CStdString CGUIWindowVideoNav::GetQuickpathName(const CStdString& strPath) const
+@@ -58,6 +58,7 @@
+ #include "video/VideoInfoScanner.h"
+ #include "video/dialogs/GUIDialogVideoInfo.h"
+ #include "pvr/recordings/PVRRecording.h"
++#include "video/BackgroundFilterProcessor.h"
+ 
+ using namespace XFILE;
+ using namespace VIDEODATABASEDIRECTORY;
+@@ -116,6 +117,8 @@ bool CGUIWindowVideoNav::OnMessage(CGUIMessage& message)
+   case GUI_MSG_WINDOW_DEINIT:
+     if (m_thumbLoader.IsLoading())
+       m_thumbLoader.StopThread();
++    if(m_backgroundFilterProcessor.IsFiltering())
++      m_backgroundFilterProcessor.StopFiltering();
+     break;
+   case GUI_MSG_WINDOW_INIT:
+     {
+@@ -269,6 +272,9 @@ CStdString CGUIWindowVideoNav::GetQuickpathName(const CStdString& strPath) const
  
  bool CGUIWindowVideoNav::GetDirectory(const CStdString &strDirectory, CFileItemList &items)
  {
@@ -846,7 +910,7 @@ index 60f3ad35..2d718e3 100644
    if (m_thumbLoader.IsLoading())
      m_thumbLoader.StopThread();
  
-@@ -428,6 +431,9 @@ bool CGUIWindowVideoNav::GetDirectory(const CStdString &strDirectory, CFileItemL
+@@ -428,6 +434,9 @@ bool CGUIWindowVideoNav::GetDirectory(const CStdString &strDirectory, CFileItemL
        items.Add(newTag);
      }
    }
@@ -856,7 +920,7 @@ index 60f3ad35..2d718e3 100644
    return bResult;
  }
  
-@@ -584,9 +590,22 @@ void CGUIWindowVideoNav::UpdateButtons()
+@@ -584,9 +593,22 @@ void CGUIWindowVideoNav::UpdateButtons()
  
  bool CGUIWindowVideoNav::GetFilteredItems(const CStdString &filter, CFileItemList &items)
  {
@@ -879,7 +943,7 @@ index 60f3ad35..2d718e3 100644
    return listchanged;
  }
  
-@@ -1211,3 +1230,18 @@ bool CGUIWindowVideoNav::ApplyWatchedFilter(CFileItemList &items)
+@@ -1211,3 +1233,18 @@ bool CGUIWindowVideoNav::ApplyWatchedFilter(CFileItemList &items)
  
    return listchanged;
  }
@@ -893,25 +957,40 @@ index 60f3ad35..2d718e3 100644
 +  }
 +}
 +
-+
-+
-+
++void CGUIWindowVideoNav::OnFilterItems(const CStdString &filter) {
++  CGUIMediaWindow::OnFilterItems(filter);
++}
 +
 +
 diff --git a/xbmc/video/windows/GUIWindowVideoNav.h b/xbmc/video/windows/GUIWindowVideoNav.h
-index 1854da3..24cbdb2 100644
+index 1854da3..05c604c 100644
 --- a/xbmc/video/windows/GUIWindowVideoNav.h
 +++ b/xbmc/video/windows/GUIWindowVideoNav.h
-@@ -68,5 +68,7 @@ protected:
+@@ -21,6 +21,7 @@
+  */
+ 
+ #include "GUIWindowVideoBase.h"
++#include "video/BackgroundFilterProcessor.h"
+ 
+ class CFileItemList;
+ 
+@@ -64,9 +65,14 @@ protected:
+   virtual void GetContextButtons(int itemNumber, CContextButtons &buttons);
+   virtual bool OnContextButton(int itemNumber, CONTEXT_BUTTON button);
+   virtual bool OnClick(int iItem);
++  virtual void OnFilterItems(const CStdString &filter);
+   virtual CStdString GetStartFolder(const CStdString &dir);
  
    virtual CStdString GetQuickpathName(const CStdString& strPath) const;
  
 +  virtual void GetDirectoryHistoryString(const CFileItem* pItem, CStdString& strHistoryString);
 +
    VECSOURCES m_shares;
++
++  CBackgroundFilterProcessor m_backgroundFilterProcessor;
  };
 diff --git a/xbmc/windows/GUIMediaWindow.cpp b/xbmc/windows/GUIMediaWindow.cpp
-index 3404f99..e9ae05d 100644
+index 3404f99..b821326 100644
 --- a/xbmc/windows/GUIMediaWindow.cpp
 +++ b/xbmc/windows/GUIMediaWindow.cpp
 @@ -101,6 +101,8 @@ CGUIMediaWindow::CGUIMediaWindow(int id, const char *xmlFile)
@@ -923,19 +1002,7 @@ index 3404f99..e9ae05d 100644
    delete m_vecItems;
    delete m_unfilteredItems;
  }
-@@ -108,6 +110,11 @@ CGUIMediaWindow::~CGUIMediaWindow()
- #define CONTROL_VIEW_START        50
- #define CONTROL_VIEW_END          59
- 
-+int timeSumPrepare;
-+int timeSumRemoveFilter;
-+int timeSumRemoveSlash;
-+int timeSumToLower;
-+
- void CGUIMediaWindow::LoadAdditionalTags(TiXmlElement *root)
- {
-   CGUIWindow::LoadAdditionalTags(root);
-@@ -144,9 +151,13 @@ void CGUIMediaWindow::LoadAdditionalTags(TiXmlElement *root)
+@@ -144,9 +146,13 @@ void CGUIMediaWindow::LoadAdditionalTags(TiXmlElement *root)
  
  void CGUIMediaWindow::OnWindowLoaded()
  {
@@ -949,7 +1016,7 @@ index 3404f99..e9ae05d 100644
  }
  
  void CGUIMediaWindow::OnWindowUnload()
-@@ -570,7 +581,9 @@ void CGUIMediaWindow::ClearFileItems()
+@@ -570,7 +576,9 @@ void CGUIMediaWindow::ClearFileItems()
  // \brief Sorts Fileitems based on the sort method and sort oder provided by guiViewState
  void CGUIMediaWindow::SortItems(CFileItemList &items)
  {
@@ -960,7 +1027,7 @@ index 3404f99..e9ae05d 100644
  
    if (guiState.get())
    {
-@@ -599,6 +612,8 @@ void CGUIMediaWindow::SortItems(CFileItemList &items)
+@@ -599,6 +607,8 @@ void CGUIMediaWindow::SortItems(CFileItemList &items)
  
      items.Sort(sorting);
    }
@@ -969,7 +1036,7 @@ index 3404f99..e9ae05d 100644
  }
  
  // \brief Formats item labels based on the formatting provided by guiViewState
-@@ -634,7 +649,8 @@ void CGUIMediaWindow::FormatAndSort(CFileItemList &items)
+@@ -634,7 +644,8 @@ void CGUIMediaWindow::FormatAndSort(CFileItemList &items)
      viewState->GetSortMethodLabelMasks(labelMasks);
      FormatItemLabels(items, labelMasks);
  
@@ -979,7 +1046,7 @@ index 3404f99..e9ae05d 100644
    }
  }
  
-@@ -645,6 +661,9 @@ void CGUIMediaWindow::FormatAndSort(CFileItemList &items)
+@@ -645,6 +656,9 @@ void CGUIMediaWindow::FormatAndSort(CFileItemList &items)
    */
  bool CGUIMediaWindow::GetDirectory(const CStdString &strDirectory, CFileItemList &items)
  {
@@ -989,7 +1056,7 @@ index 3404f99..e9ae05d 100644
    // cleanup items
    if (items.Size())
      items.Clear();
-@@ -664,6 +683,7 @@ bool CGUIMediaWindow::GetDirectory(const CStdString &strDirectory, CFileItemList
+@@ -664,6 +678,7 @@ bool CGUIMediaWindow::GetDirectory(const CStdString &strDirectory, CFileItemList
    else
    {
      unsigned int time = XbmcThreads::SystemClockMillis();
@@ -997,7 +1064,7 @@ index 3404f99..e9ae05d 100644
  
      if (strDirectory.empty())
        SetupShares();
-@@ -672,7 +692,7 @@ bool CGUIMediaWindow::GetDirectory(const CStdString &strDirectory, CFileItemList
+@@ -672,7 +687,7 @@ bool CGUIMediaWindow::GetDirectory(const CStdString &strDirectory, CFileItemList
        return false;
  
      // took over a second, and not normally cached, so cache it
@@ -1006,7 +1073,7 @@ index 3404f99..e9ae05d 100644
        items.Save(GetID());
  
      // if these items should replace the current listing, then pop it off the top
-@@ -715,6 +735,9 @@ bool CGUIMediaWindow::GetDirectory(const CStdString &strDirectory, CFileItemList
+@@ -715,6 +730,9 @@ bool CGUIMediaWindow::GetDirectory(const CStdString &strDirectory, CFileItemList
    SetProperty("filter", "");
    m_canFilterAdvanced = false;
    m_filter.Reset();
@@ -1016,7 +1083,7 @@ index 3404f99..e9ae05d 100644
    return true;
  }
  
-@@ -723,6 +746,14 @@ bool CGUIMediaWindow::GetDirectory(const CStdString &strDirectory, CFileItemList
+@@ -723,6 +741,14 @@ bool CGUIMediaWindow::GetDirectory(const CStdString &strDirectory, CFileItemList
  // This function calls OnPrepareFileItems() and OnFinalizeFileItems()
  bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPath /* = true */)
  {
@@ -1031,7 +1098,7 @@ index 3404f99..e9ae05d 100644
    // TODO: OnInitWindow calls Update() before window path has been set properly.
    if (strDirectory == "?")
      return false;
-@@ -751,8 +782,8 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
+@@ -751,8 +777,8 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
    if (canfilter && url.HasOption("filter"))
      directory = RemoveParameterFromPath(directory, "filter");
  
@@ -1042,7 +1109,7 @@ index 3404f99..e9ae05d 100644
    {
      CLog::Log(LOGERROR,"CGUIMediaWindow::GetDirectory(%s) failed", url.GetRedacted().c_str());
      // Try to return to the previous directory, if not the same
-@@ -765,14 +796,14 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
+@@ -765,14 +791,14 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
      return false;
    }
  
@@ -1063,7 +1130,7 @@ index 3404f99..e9ae05d 100644
      
    // if we're getting the root source listing
    // make sure the path history is clean
-@@ -818,6 +849,10 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
+@@ -818,6 +844,10 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
    if (m_canFilterAdvanced)
      m_filter.SetType(m_vecItems->GetContent());
  
@@ -1074,7 +1141,7 @@ index 3404f99..e9ae05d 100644
    //  Ask the derived class if it wants to load additional info
    //  for the fileitems like media info or additional
    //  filtering on the items, setting thumbs.
-@@ -834,6 +869,10 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
+@@ -834,6 +864,10 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
    // Cache the list of items if possible
    OnCacheFileItems(*m_vecItems);
  
@@ -1085,7 +1152,7 @@ index 3404f99..e9ae05d 100644
    // Filter and group the items if necessary
    OnFilterItems(GetProperty("filter").asString());
  
-@@ -842,6 +881,10 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
+@@ -842,6 +876,10 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
    OnFinalizeFileItems(*m_vecItems);
    UpdateButtons();
  
@@ -1096,7 +1163,7 @@ index 3404f99..e9ae05d 100644
    strSelectedItem = m_history.GetSelectedItem(m_vecItems->GetPath());
  
    bool bSelectedFound = false;
-@@ -871,11 +914,20 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
+@@ -871,11 +909,20 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
  
    //m_history.DumpPathHistory();
  
@@ -1117,7 +1184,7 @@ index 3404f99..e9ae05d 100644
    CStdString strCurrentDirectory = m_vecItems->GetPath();
    if (strCurrentDirectory.Equals("?"))
      return false;
-@@ -884,8 +936,12 @@ bool CGUIMediaWindow::Refresh(bool clearCache /* = false */)
+@@ -884,8 +931,12 @@ bool CGUIMediaWindow::Refresh(bool clearCache /* = false */)
      m_vecItems->RemoveDiscCache(GetID());
  
    // get the original number of items
@@ -1131,7 +1198,7 @@ index 3404f99..e9ae05d 100644
  
    return true;
  }
-@@ -896,7 +952,7 @@ bool CGUIMediaWindow::Refresh(bool clearCache /* = false */)
+@@ -896,7 +947,7 @@ bool CGUIMediaWindow::Refresh(bool clearCache /* = false */)
  // It's used to load tag info for music.
  void CGUIMediaWindow::OnPrepareFileItems(CFileItemList &items)
  {
@@ -1140,7 +1207,7 @@ index 3404f99..e9ae05d 100644
  }
  
  // \brief This function will be called by Update() before
-@@ -904,7 +960,7 @@ void CGUIMediaWindow::OnPrepareFileItems(CFileItemList &items)
+@@ -904,7 +955,7 @@ void CGUIMediaWindow::OnPrepareFileItems(CFileItemList &items)
  // Override this function to define a custom caching behaviour.
  void CGUIMediaWindow::OnCacheFileItems(CFileItemList &items)
  {
@@ -1149,7 +1216,7 @@ index 3404f99..e9ae05d 100644
    if (items.CacheToDiscAlways() && !IsFiltered())
      items.Save(GetID());
  }
-@@ -1394,7 +1450,9 @@ bool CGUIMediaWindow::OnPlayAndQueueMedia(const CFileItemPtr &item)
+@@ -1394,7 +1445,9 @@ bool CGUIMediaWindow::OnPlayAndQueueMedia(const CFileItemPtr &item)
  // on the fileitems of the window
  void CGUIMediaWindow::UpdateFileList()
  {
@@ -1160,7 +1227,7 @@ index 3404f99..e9ae05d 100644
    CStdString strSelected;
    if (nItem >= 0)
      strSelected = m_vecItems->Get(nItem)->GetPath();
-@@ -1431,6 +1489,8 @@ void CGUIMediaWindow::UpdateFileList()
+@@ -1431,6 +1484,8 @@ void CGUIMediaWindow::UpdateFileList()
          g_playlistPlayer.SetCurrentSong(g_playlistPlayer.GetPlaylist(iPlaylist).size() - 1);
      }
    }
@@ -1169,7 +1236,7 @@ index 3404f99..e9ae05d 100644
  }
  
  void CGUIMediaWindow::OnDeleteItem(int iItem)
-@@ -1467,7 +1527,11 @@ void CGUIMediaWindow::OnRenameItem(int iItem)
+@@ -1467,7 +1522,11 @@ void CGUIMediaWindow::OnRenameItem(int iItem)
  
  void CGUIMediaWindow::OnInitWindow()
  {
@@ -1182,7 +1249,7 @@ index 3404f99..e9ae05d 100644
    m_rootDir.SetAllowThreads(false);
  
    // the start directory may change during Refresh
-@@ -1478,10 +1542,16 @@ void CGUIMediaWindow::OnInitWindow()
+@@ -1478,10 +1537,16 @@ void CGUIMediaWindow::OnInitWindow()
  
    m_rootDir.SetAllowThreads(true);
  
@@ -1199,21 +1266,21 @@ index 3404f99..e9ae05d 100644
  }
  
  CGUIControl *CGUIMediaWindow::GetFirstFocusableControl(int id)
-@@ -1710,7 +1780,12 @@ void CGUIMediaWindow::UpdateFilterPath(const CStdString &strDirectory, const CFi
+@@ -1710,7 +1775,12 @@ void CGUIMediaWindow::UpdateFilterPath(const CStdString &strDirectory, const CFi
  
  void CGUIMediaWindow::OnFilterItems(const CStdString &filter)
  {
 -  CFileItemPtr currentItem;
 +  unsigned int timeFull = XbmcThreads::SystemClockMillis();
 +  unsigned int timePart = XbmcThreads::SystemClockMillis();
-+ 	CLog::Log(LOGDEBUG, "%s started", "CGUIMediaWindow::OnFilterItems");
++ 	CLog::Log(LOGDEBUG, "%s(%s) started", __FUNCTION__, (filter ? filter.c_str() : "NULL"));
 +
 +
 + 	CFileItemPtr currentItem;
    CStdString currentItemPath;
    int item = m_viewControl.GetSelectedItem();
    if (item >= 0 && item < m_vecItems->Size())
-@@ -1719,13 +1794,29 @@ void CGUIMediaWindow::OnFilterItems(const CStdString &filter)
+@@ -1719,13 +1789,29 @@ void CGUIMediaWindow::OnFilterItems(const CStdString &filter)
      currentItemPath = currentItem->GetPath();
    }
    
@@ -1243,7 +1310,7 @@ index 3404f99..e9ae05d 100644
    m_vecItems->ClearItems();
    // we need to clear the sort state and re-sort the items
    m_vecItems->ClearSortState();
-@@ -1744,33 +1835,79 @@ void CGUIMediaWindow::OnFilterItems(const CStdString &filter)
+@@ -1744,50 +1830,100 @@ void CGUIMediaWindow::OnFilterItems(const CStdString &filter)
        m_strFilterPath = items.GetPath();
    }
    
@@ -1280,38 +1347,53 @@ index 3404f99..e9ae05d 100644
 +
    // apply the "filter" option to any folder item so that
    // the filter can be passed down to the sub-directory
-   for (int index = 0; index < m_vecItems->Size(); index++)
-   {
-+  	timeFill = XbmcThreads::SystemClockMillis();
+-  for (int index = 0; index < m_vecItems->Size(); index++)
+-  {
+-    CFileItemPtr pItem = m_vecItems->Get(index);
+-    // if the item is a folder we need to copy the path of
+-    // the filtered item to be able to keep the applied filters
+-    if (pItem->m_bIsFolder)
+-    {
+-      CURL itemUrl(pItem->GetPath());
+-      if (!filterOption.empty())
+-        itemUrl.SetOption("filter", filterOption);
+-      else
+-        itemUrl.RemoveOption("filter");
+-      pItem->SetPath(itemUrl.Get());
+-    }
+-  }
++//  for (int index = 0; index < m_vecItems->Size(); index++)
++//  {
++//  	timeFill = XbmcThreads::SystemClockMillis();
++//
++//    CFileItemPtr pItem = m_vecItems->Get(index);
++//
++//    timeSumGetByIndex += (XbmcThreads::SystemClockMillis() - timeFill);
++//    timeFill = XbmcThreads::SystemClockMillis();
++//
++//    // if the item is a folder we need to copy the path of
++//    // the filtered item to be able to keep the applied filters
++//    if (pItem->m_bIsFolder)
++//    {
++//      CURL itemUrl(pItem->GetPath());
++//
++//      timeSumItemURL += (XbmcThreads::SystemClockMillis() - timeFill);
++//      timeFill = XbmcThreads::SystemClockMillis();
++//
++//      if (!filterOption.empty())
++//        itemUrl.SetOption("filter", filterOption);
++//      else
++//        itemUrl.RemoveOption("filter");
++//
++//      timeSumSetOption += (XbmcThreads::SystemClockMillis() - timeFill);
++//      timeFill = XbmcThreads::SystemClockMillis();
++//
++//      pItem->SetPath(itemUrl.Get());
++//
++//      timeSumSetPath += (XbmcThreads::SystemClockMillis() - timeFill);
++//    }
++//  }
 +
-     CFileItemPtr pItem = m_vecItems->Get(index);
-+
-+    timeSumGetByIndex += (XbmcThreads::SystemClockMillis() - timeFill);
-+    timeFill = XbmcThreads::SystemClockMillis();
-+
-     // if the item is a folder we need to copy the path of
-     // the filtered item to be able to keep the applied filters
-     if (pItem->m_bIsFolder)
-     {
-       CURL itemUrl(pItem->GetPath());
-+
-+      timeSumItemURL += (XbmcThreads::SystemClockMillis() - timeFill);
-+      timeFill = XbmcThreads::SystemClockMillis();
-+
-       if (!filterOption.empty())
-         itemUrl.SetOption("filter", filterOption);
-       else
-         itemUrl.RemoveOption("filter");
-+
-+      timeSumSetOption += (XbmcThreads::SystemClockMillis() - timeFill);
-+      timeFill = XbmcThreads::SystemClockMillis();
-+
-       pItem->SetPath(itemUrl.Get());
-+
-+      timeSumSetPath += (XbmcThreads::SystemClockMillis() - timeFill);
-     }
-   }
- 
 +  CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIMediaWindow::OnFilterItems part 4.2 - GetByIndex", timeSumGetByIndex);
 +  CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIMediaWindow::OnFilterItems part 4.2 - ItemURL", timeSumItemURL);
 +  CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIMediaWindow::OnFilterItems part 4.2 - SetOption", timeSumSetOption);
@@ -1319,22 +1401,47 @@ index 3404f99..e9ae05d 100644
 +  CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIMediaWindow::OnFilterItems part 4.2", XbmcThreads::SystemClockMillis() - timePart);
 +  timePart = XbmcThreads::SystemClockMillis();
 +
-+
-   SetProperty("filter", filter);
-   if (filtered && m_canFilterAdvanced)
-   {
-@@ -1789,6 +1926,10 @@ void CGUIMediaWindow::OnFilterItems(const CStdString &filter)
-     }
-   }
  
+   SetProperty("filter", filter);
+-  if (filtered && m_canFilterAdvanced)
+-  {
+-    // to be able to select the same item as before we need to adjust
+-    // the path of the item i.e. add or remove the "filter=" URL option
+-    // but that's only necessary for folder items
+-    if (currentItem.get() != NULL && currentItem->m_bIsFolder)
+-    {
+-      CURL curUrl(currentItemPath), newUrl(m_strFilterPath);
+-      if (newUrl.HasOption("filter"))
+-        curUrl.SetOption("filter", newUrl.GetOption("filter"));
+-      else if (curUrl.HasOption("filter"))
+-        curUrl.RemoveOption("filter");
++//  if (filtered && m_canFilterAdvanced)
++//  {
++//    // to be able to select the same item as before we need to adjust
++//    // the path of the item i.e. add or remove the "filter=" URL option
++//    // but that's only necessary for folder items
++//    if (currentItem.get() != NULL && currentItem->m_bIsFolder)
++//    {
++//      CURL curUrl(currentItemPath), newUrl(m_strFilterPath);
++//      if (newUrl.HasOption("filter"))
++//        curUrl.SetOption("filter", newUrl.GetOption("filter"));
++//      else if (curUrl.HasOption("filter"))
++//        curUrl.RemoveOption("filter");
++//
++//      currentItemPath = curUrl.Get();
++//    }
++//  }
++
 +  CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIMediaWindow::OnFilterItems part 5", XbmcThreads::SystemClockMillis() - timePart);
 +  timePart = XbmcThreads::SystemClockMillis();
-+
-+
+ 
+-      currentItemPath = curUrl.Get();
+-    }
+-  }
+ 
    // The idea here is to ensure we have something to focus if our file list
    // is empty.  As such, this check MUST be last and ignore the hide parent
-   // fileitems settings.
-@@ -1801,10 +1942,17 @@ void CGUIMediaWindow::OnFilterItems(const CStdString &filter)
+@@ -1801,10 +1937,17 @@ void CGUIMediaWindow::OnFilterItems(const CStdString &filter)
      m_vecItems->AddFront(pItem, 0);
    }
  
@@ -1353,9 +1460,18 @@ index 3404f99..e9ae05d 100644
  
  bool CGUIMediaWindow::GetFilteredItems(const CStdString &filter, CFileItemList &items)
 diff --git a/xbmc/windows/GUIMediaWindow.h b/xbmc/windows/GUIMediaWindow.h
-index b4d73ee..e5cfe61 100644
+index b4d73ee..a918dc1 100644
 --- a/xbmc/windows/GUIMediaWindow.h
 +++ b/xbmc/windows/GUIMediaWindow.h
+@@ -112,7 +112,7 @@ protected:
+    \param filter the filter to use.
+    \sa FilterItems
+    */
+-  void OnFilterItems(const CStdString &filter);
++  virtual void OnFilterItems(const CStdString &filter);
+ 
+   /* \brief Retrieve the filtered item list
+    \param filter filter to apply
 @@ -133,7 +133,7 @@ protected:
    virtual bool HaveDiscOrConnection(const CStdString& strPath, int iDriveType);
    void ShowShareErrorMessage(CFileItem* pItem);

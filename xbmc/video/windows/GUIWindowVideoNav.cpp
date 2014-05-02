@@ -58,7 +58,6 @@
 #include "video/VideoInfoScanner.h"
 #include "video/dialogs/GUIDialogVideoInfo.h"
 #include "pvr/recordings/PVRRecording.h"
-#include "video/BackgroundFilterProcessor.h"
 
 using namespace XFILE;
 using namespace VIDEODATABASEDIRECTORY;
@@ -117,8 +116,6 @@ bool CGUIWindowVideoNav::OnMessage(CGUIMessage& message)
   case GUI_MSG_WINDOW_DEINIT:
     if (m_thumbLoader.IsLoading())
       m_thumbLoader.StopThread();
-    if(m_backgroundFilterProcessor.IsFiltering())
-      m_backgroundFilterProcessor.StopFiltering();
     break;
   case GUI_MSG_WINDOW_INIT:
     {
@@ -193,16 +190,6 @@ bool CGUIWindowVideoNav::OnMessage(CGUIMessage& message)
       }
     }
     break;
-  case GUI_MSG_NOTIFY_ALL:
-    { // Message is received even if this window is inactive
-      if(message.GetParam1() == GUI_MSG_FILTER_ITEMS_FILTERED) {
-        CLog::Log(LOGDEBUG, "%s: @@@ %s", __FUNCTION__, "Message received");
-      }
-      else
-        return CGUIWindowVideoBase::OnMessage(message);
-
-      return true;
-    }
     // update the display
     case GUI_MSG_SCAN_FINISHED:
     case GUI_MSG_REFRESH_THUMBS:
@@ -1254,37 +1241,7 @@ void CGUIWindowVideoNav::GetDirectoryHistoryString(const CFileItem* pItem, CStdS
 }
 
 void CGUIWindowVideoNav::OnFilterItems(const CStdString &filter) {
-  CFileItemList items;
-  items.Copy(*m_vecItems, false);
-  items.Append(*m_unfilteredItems);
-
-  int selectedDBId = -1;
-  int itemIndex = m_viewControl.GetSelectedItem();
-  if(itemIndex >= 0 && itemIndex < m_vecItems->Size()) {
-    if(m_vecItems->Get(itemIndex)->HasVideoInfoTag())
-      selectedDBId = m_vecItems->Get(itemIndex)->GetVideoInfoTag()->m_iDbId;
-  }
-
-  m_backgroundFilterProcessor.StartFiltering(
-      filter, m_strFilterPath, items, CGUIViewState::GetViewState(GetID(), *m_vecItems), m_filter, selectedDBId, m_canFilterAdvanced);
-
-
-  if (m_vecItems->IsEmpty()) {
-    CFileItemPtr pItem(new CFileItem(".."));
-    pItem->SetPath(m_history.GetParentPath());
-    pItem->m_bIsFolder = true;
-    pItem->m_bIsShareOrDrive = false;
-    m_vecItems->AddFront(pItem, 0);
-  }
-
-  SetProperty("filter", filter);
-
-  m_viewControl.Clear();
-  m_viewControl.SetItems(*m_vecItems);
-
-  UpdateButtons();
-
-//  CGUIMediaWindow::OnFilterItems(filter);
+  CGUIMediaWindow::OnFilterItems(filter);
 }
 
 

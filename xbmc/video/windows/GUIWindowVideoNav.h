@@ -21,7 +21,6 @@
  */
 
 #include "GUIWindowVideoBase.h"
-#include "video/BackgroundFilterProcessor.h"
 
 class CFileItemList;
 
@@ -73,6 +72,4 @@ protected:
   virtual void GetDirectoryHistoryString(const CFileItem* pItem, CStdString& strHistoryString);
 
   VECSOURCES m_shares;
-
-  CBackgroundFilterProcessor m_backgroundFilterProcessor;
 };
