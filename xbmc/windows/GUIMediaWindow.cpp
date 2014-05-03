@@ -743,10 +743,7 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
 {
   unsigned int timeFull = XbmcThreads::SystemClockMillis();
   unsigned int timePart = XbmcThreads::SystemClockMillis();
-  if (updateFilterPath)
-  	CLog::Log(LOGDEBUG, "%s(%s) started", "CGUIMediaWindow::Update", "true");
-  else
-  	CLog::Log(LOGDEBUG, "%s(%s) started", "CGUIMediaWindow::Update", "false");
+	CLog::Log(LOGDEBUG, "%s started", __FUNCTION__);
 
 
   // TODO: OnInitWindow calls Update() before window path has been set properly.
@@ -869,7 +866,7 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
 
 
   // Filter and group the items if necessary
-  OnFilterItems(GetProperty("filter").asString());
+  OnFilterItems(GetProperty("filter").asString(), false);
 
   // Ask the devived class if it wants to do custom list operations,
   // eg. changing the label
@@ -1773,7 +1770,7 @@ void CGUIMediaWindow::UpdateFilterPath(const CStdString &strDirectory, const CFi
   }
 }
 
-void CGUIMediaWindow::OnFilterItems(const CStdString &filter)
+void CGUIMediaWindow::OnFilterItems(const CStdString &filter, const bool onFilter)
 {
   unsigned int timeFull = XbmcThreads::SystemClockMillis();
   unsigned int timePart = XbmcThreads::SystemClockMillis();
@@ -1902,6 +1899,7 @@ void CGUIMediaWindow::OnFilterItems(const CStdString &filter)
   CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIMediaWindow::OnFilterItems part 4.2", XbmcThreads::SystemClockMillis() - timePart);
   timePart = XbmcThreads::SystemClockMillis();
 
+  XbmcThreads::ThreadSleep(50);
 
   SetProperty("filter", filter);
 //  if (filtered && m_canFilterAdvanced)

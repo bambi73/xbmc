@@ -33,6 +33,7 @@ CBackgroundInfoLoader::CBackgroundInfoLoader() : m_thread (NULL)
   m_pProgressCallback=NULL;
   m_pVecItems = NULL;
   m_bIsLoading = false;
+  m_iStartIndex = 0;
 }
 
 CBackgroundInfoLoader::~CBackgroundInfoLoader()
@@ -48,10 +49,16 @@ void CBackgroundInfoLoader::Run()
     {
       OnLoaderStart();
 
+      CLog::Log(LOGDEBUG, "### StartIndex = %d", m_iStartIndex);
+
       // Stage 1: All "fast" stuff we have already cached
-      for (vector<CFileItemPtr>::const_iterator iter = m_vecItems.begin(); iter != m_vecItems.end(); ++iter)
-      {
-        CFileItemPtr pItem = *iter;
+      for(int i = 0; m_iStartIndex - (i + 1) / 2 >= 0 || m_iStartIndex + i / 2 < (int)m_vecItems.size(); ++i) {
+        int index = (i % 2 == 0 ? m_iStartIndex + i / 2 : m_iStartIndex - (i + 1) / 2);
+
+        if(index < 0 || index >= (int)m_vecItems.size())
+          continue;
+
+        CFileItemPtr pItem = m_vecItems[index];
 
         // Ask the callback if we should abort
         if ((m_pProgressCallback && m_pProgressCallback->Abort()) || m_bStop)
@@ -69,9 +76,13 @@ void CBackgroundInfoLoader::Run()
       }
 
       // Stage 2: All "slow" stuff that we need to lookup
-      for (vector<CFileItemPtr>::const_iterator iter = m_vecItems.begin(); iter != m_vecItems.end(); ++iter)
-      {
-        CFileItemPtr pItem = *iter;
+      for(int i = 0; m_iStartIndex - (i + 1) / 2 >= 0 || m_iStartIndex + i / 2 < (int)m_vecItems.size(); ++i) {
+        int index = (i % 2 == 0 ? m_iStartIndex + i / 2 : m_iStartIndex - (i + 1) / 2);
+
+        if(index < 0 || index >= (int)m_vecItems.size())
+          continue;
+
+        CFileItemPtr pItem = m_vecItems[index];
 
         // Ask the callback if we should abort
         if ((m_pProgressCallback && m_pProgressCallback->Abort()) || m_bStop)
@@ -99,7 +110,7 @@ void CBackgroundInfoLoader::Run()
   }
 }
 
-void CBackgroundInfoLoader::Load(CFileItemList& items)
+void CBackgroundInfoLoader::Load(CFileItemList& items, int startIndex /* = 0 */)
 {
   StopThread();
 
@@ -110,6 +121,11 @@ void CBackgroundInfoLoader::Load(CFileItemList& items)
 
   for (int nItem=0; nItem < items.Size(); nItem++)
     m_vecItems.push_back(items[nItem]);
+
+  m_iStartIndex = startIndex;
+
+  if(m_iStartIndex < 0 || m_iStartIndex >= (int)m_vecItems.size())
+    m_iStartIndex = 0;
 
   m_pVecItems = &items;
   m_bStop = false;

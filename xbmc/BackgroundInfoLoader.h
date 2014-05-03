@@ -43,7 +43,7 @@ public:
   CBackgroundInfoLoader();
   virtual ~CBackgroundInfoLoader();
 
-  void Load(CFileItemList& items);
+  void Load(CFileItemList& items, int startIndex = 0);
   bool IsLoading();
   virtual void Run();
   void SetObserver(IBackgroundLoaderObserver* pObserver);
@@ -62,6 +62,8 @@ protected:
   CFileItemList *m_pVecItems;
   std::vector<CFileItemPtr> m_vecItems; // FileItemList would delete the items and we only want to keep a reference.
   CCriticalSection m_lock;
+
+  int m_iStartIndex;
 
   volatile bool m_bIsLoading;
   volatile bool m_bStop;

@@ -1797,10 +1797,10 @@ void CGUIWindowVideoBase::GetGroupedItems(CFileItemList &items)
   }
 
   // reload thumbs after filtering and grouping
-  if (m_thumbLoader.IsLoading())
-    m_thumbLoader.StopThread();
-
-  m_thumbLoader.Load(items);
+//  if (m_thumbLoader.IsLoading())
+//    m_thumbLoader.StopThread();
+//
+//  m_thumbLoader.Load(items);
 }
 
 bool CGUIWindowVideoBase::CheckFilterAdvanced(CFileItemList &items) const

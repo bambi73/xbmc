@@ -81,6 +81,8 @@ using namespace std;
 
 #define CONTROL_UPDATE_LIBRARY    20
 
+#define PROPERTY_PATH_DB  "path.db"
+
 CGUIWindowVideoNav::CGUIWindowVideoNav(void)
     : CGUIWindowVideoBase(WINDOW_VIDEO_NAV, "MyVideoNav.xml")
 {
@@ -591,19 +593,10 @@ void CGUIWindowVideoNav::UpdateButtons()
 bool CGUIWindowVideoNav::GetFilteredItems(const CStdString &filter, CFileItemList &items)
 {
   unsigned int timeFull = XbmcThreads::SystemClockMillis();
-  unsigned int timePart = XbmcThreads::SystemClockMillis();
-  CLog::Log(LOGDEBUG, "%s started", __FUNCTION__);
-  CLog::Log(LOGDEBUG, "%s items size before: %d", __FUNCTION__, items.Size());
 
   bool listchanged = CGUIMediaWindow::GetFilteredItems(filter, items);
-
-  CLog::Log(LOGDEBUG, "%s items size after: %d", __FUNCTION__, items.Size());
-  CLog::Log(LOGDEBUG, "%s:%s took %d ms", __FUNCTION__, "GetFilteredItems", XbmcThreads::SystemClockMillis() - timePart);
-  timePart = XbmcThreads::SystemClockMillis();
-
   listchanged |= ApplyWatchedFilter(items);
 
-  CLog::Log(LOGDEBUG, "%s:%s took %d ms", __FUNCTION__, "ApplyWatchedFilter", XbmcThreads::SystemClockMillis() - timePart);
   CLog::Log(LOGDEBUG, "%s took %d ms", __FUNCTION__, XbmcThreads::SystemClockMillis() - timeFull);
 
   return listchanged;
@@ -1225,7 +1218,7 @@ bool CGUIWindowVideoNav::ApplyWatchedFilter(CFileItemList &items)
     // the watched filter may change the "numepisodes" property which is reflected in the TV_SHOWS and SEASONS nodes
     // therefore, the items labels have to be refreshed, and possibly the list needs resorting as well.
     items.ClearSortState(); // this is needed to force resorting even if sort method did not change
-    FormatAndSort(items);
+//    FormatAndSort(items);
   }
 
   return listchanged;
@@ -1240,8 +1233,114 @@ void CGUIWindowVideoNav::GetDirectoryHistoryString(const CFileItem* pItem, CStdS
   }
 }
 
-void CGUIWindowVideoNav::OnFilterItems(const CStdString &filter) {
-  CGUIMediaWindow::OnFilterItems(filter);
+//void CGUIWindowVideoNav::OnFilterItems(const CStdString &filter) {
+//  CGUIMediaWindow::OnFilterItems(filter);
+//}
+
+void CGUIWindowVideoNav::OnFilterItems(const CStdString &filter, const bool onFilter) {
+  unsigned int timeFull = XbmcThreads::SystemClockMillis();
+
+  CStdString selectedItemIdent;
+  int selectedItemDbId = -1;
+
+  if(onFilter) {
+    int selectedItemIndex = m_viewControl.GetSelectedItem();
+    if (selectedItemIndex >= 0 && selectedItemIndex < m_vecItems->Size()) {
+      CFileItemPtr pItem = m_vecItems->Get(selectedItemIndex);
+
+      if(pItem->HasVideoInfoTag())
+        selectedItemDbId = pItem->GetVideoInfoTag()->m_iDbId;
+    }
+  }
+  else {
+    selectedItemIdent = m_history.GetSelectedItem(m_vecItems->GetPath());
+  }
+
+  m_viewControl.Clear();
+
+  CFileItemList items;
+  items.Copy(*m_vecItems, false);
+  items.Append(*m_unfilteredItems);
+
+  bool filtered = GetFilteredItems(filter, items);
+
+  m_vecItems->ClearItems();
+  m_vecItems->ClearSortState();
+  m_vecItems->Append(items);
+
+  if(filtered && m_canFilterAdvanced) {
+    if (items.HasProperty(PROPERTY_PATH_DB))
+      m_strFilterPath = items.GetProperty(PROPERTY_PATH_DB).asString();
+    else if (m_strFilterPath.empty())
+      m_strFilterPath = items.GetPath();
+  }
+
+  GetGroupedItems(*m_vecItems);
+
+  int selectedItemIndex = -1;
+  for (int i = 0; i < m_vecItems->Size(); ++i) {
+    CFileItemPtr pItem = m_vecItems->Get(i);
+
+    if(onFilter) {
+      if(pItem->HasVideoInfoTag() && pItem->GetVideoInfoTag()->m_iDbId == selectedItemDbId) {
+        selectedItemIndex = i;
+        break;
+      }
+    }
+    else {
+      CStdString historyItemIdent;
+      GetDirectoryHistoryString(pItem.get(), historyItemIdent);
+
+      if (historyItemIdent == selectedItemIdent) {
+        selectedItemIndex = i;
+        break;
+      }
+    }
+  }
+
+  if (m_thumbLoader.IsLoading())
+    m_thumbLoader.StopThread();
+
+  m_thumbLoader.Load(items, selectedItemIndex);
+
+  FormatAndSort(*m_vecItems);
+
+  CStdString filterOption;
+  CURL filterUrl(m_strFilterPath);
+  if (filterUrl.HasOption("filter"))
+    filterOption = filterUrl.GetOption("filter");
+
+  SetProperty("filter", filter);
+
+  if (m_vecItems->IsEmpty()) {
+    CFileItemPtr pItem(new CFileItem(".."));
+    pItem->SetPath(m_history.GetParentPath());
+    pItem->m_bIsFolder = true;
+    pItem->m_bIsShareOrDrive = false;
+
+    m_vecItems->AddFront(pItem, 0);
+  }
+
+  m_viewControl.SetItems(*m_vecItems);
+
+  if(onFilter && selectedItemDbId >= 0) {
+    int selectedItemIndex = -1;
+
+    for (int i = 0; i < m_vecItems->Size(); ++i) {
+      CFileItemPtr pItem = m_vecItems->Get(i);
+
+      if(pItem->HasVideoInfoTag() && pItem->GetVideoInfoTag()->m_iDbId == selectedItemDbId) {
+        selectedItemIndex = i;
+        break;
+      }
+    }
+
+    m_viewControl.SetSelectedItem(selectedItemIndex);
+  }
+
+  UpdateButtons();
+
+  CLog::Log(LOGDEBUG, "%s(%s) took %d ms ", __FUNCTION__, (onFilter ? "true" : "false"), XbmcThreads::SystemClockMillis() - timeFull);
 }
 
 
