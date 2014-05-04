@@ -141,7 +141,7 @@ void CDirectoryHistory::DumpSelectionHistory()
   // debug log
   CLog::Log(LOGDEBUG,"Current m_vecHistory:");
   for (std::map<CStdString, CHistoryItem>::iterator it = m_vecHistory.begin(); it != m_vecHistory.end(); it++)
-    CLog::Log(LOGDEBUG, "##@@## %s -> [%s, %s]", (*it).first.c_str(), (*it).second.m_strItem.c_str(), (*it).second.m_strDirectory.c_str());
+    CLog::Log(LOGDEBUG, "##@@## %s -> %s", (*it).first.c_str(), (*it).second.m_strItem.c_str());
 }
 
 CStdString CDirectoryHistory::preparePath(const CStdString &strDirectory, bool tolower /* = true */)
