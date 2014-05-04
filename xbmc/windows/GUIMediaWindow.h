@@ -112,7 +112,7 @@ protected:
    \param filter the filter to use.
    \sa FilterItems
    */
-  virtual void OnFilterItems(const CStdString &filter, const bool onFilter = true);
+  virtual void OnFilterItems(const CStdString &filter, const bool onUpdate = false);
 
   /* \brief Retrieve the filtered item list
    \param filter filter to apply
@@ -138,7 +138,7 @@ protected:
   virtual void LoadPlayList(const CStdString& strFileName) {}
   virtual bool OnPlayMedia(int iItem);
   virtual bool OnPlayAndQueueMedia(const CFileItemPtr &item);
-  void UpdateFileList();
+  virtual void UpdateFileList();
   virtual void OnDeleteItem(int iItem);
   void OnRenameItem(int iItem);
 
@@ -149,6 +149,7 @@ protected:
    \param dir the folder the user wants
    \return the resulting path */
   virtual CStdString GetStartFolder(const CStdString &url);
+  virtual void GetSelectedItemIdent(CStdString &selectedItemIdent);
 
   /*! \brief Utility method to remove the given parameter from a path/URL
    \param strDirectory Path/URL from which to remove the given parameter
@@ -186,4 +187,6 @@ protected:
    \sa Update
    */
   CStdString m_strFilterPath;
+  CStdString m_selectedItemIdent;
+
 };

@@ -29,6 +29,7 @@
 #include "dialogs/GUIDialogFileBrowser.h"
 #include "filesystem/VideoDatabaseDirectory.h"
 #include "playlists/PlayListFactory.h"
+#include "playlists/PlayList.h"
 #include "dialogs/GUIDialogOK.h"
 #include "addons/AddonManager.h"
 #include "PartyModeManager.h"
@@ -1233,17 +1234,19 @@ void CGUIWindowVideoNav::GetDirectoryHistoryString(const CFileItem* pItem, CStdS
   }
 }
 
-//void CGUIWindowVideoNav::OnFilterItems(const CStdString &filter) {
+//void CGUIWindowVideoNav::OnFilterItems(const CStdString &filter, const bool onFilter) {
 //  CGUIMediaWindow::OnFilterItems(filter);
 //}
 
-void CGUIWindowVideoNav::OnFilterItems(const CStdString &filter, const bool onFilter) {
+void CGUIWindowVideoNav::OnFilterItems(const CStdString &filter, const bool onUpdate) {
   unsigned int timeFull = XbmcThreads::SystemClockMillis();
 
   CStdString selectedItemIdent;
   int selectedItemDbId = -1;
 
-  if(onFilter) {
+  CLog::Log(LOGDEBUG, "### %s m_iSelectedItem = %d", __FUNCTION__, m_iSelectedItem);
+
+  if(!onUpdate) {
     int selectedItemIndex = m_viewControl.GetSelectedItem();
     if (selectedItemIndex >= 0 && selectedItemIndex < m_vecItems->Size()) {
       CFileItemPtr pItem = m_vecItems->Get(selectedItemIndex);
@@ -1251,9 +1254,18 @@ void CGUIWindowVideoNav::OnFilterItems(const CStdString &filter, const bool onFi
       if(pItem->HasVideoInfoTag())
         selectedItemDbId = pItem->GetVideoInfoTag()->m_iDbId;
     }
+    CLog::Log(LOGDEBUG, "### %s selectedItemDbId = %s", __FUNCTION__, selectedItemDbId);
   }
   else {
     selectedItemIdent = m_history.GetSelectedItem(m_vecItems->GetPath());
+
+    if(!selectedItemIdent || selectedItemIdent.empty()) {
+      CLog::Log(LOGDEBUG, "### %s selectedItemIdent empty", __FUNCTION__, selectedItemIdent.c_str());
+      if (m_iSelectedItem >= 0 && m_iSelectedItem < m_vecItems->Size())
+        GetDirectoryHistoryString(m_vecItems->Get(m_iSelectedItem).get(), selectedItemIdent);
+    }
+
+    CLog::Log(LOGDEBUG, "### %s selectedItemIdent = %s", __FUNCTION__, selectedItemIdent.c_str());
   }
 
   m_viewControl.Clear();
@@ -1281,7 +1293,7 @@ void CGUIWindowVideoNav::OnFilterItems(const CStdString &filter, const bool onFi
   for (int i = 0; i < m_vecItems->Size(); ++i) {
     CFileItemPtr pItem = m_vecItems->Get(i);
 
-    if(onFilter) {
+    if(!onUpdate) {
       if(pItem->HasVideoInfoTag() && pItem->GetVideoInfoTag()->m_iDbId == selectedItemDbId) {
         selectedItemIndex = i;
         break;
@@ -1323,7 +1335,7 @@ void CGUIWindowVideoNav::OnFilterItems(const CStdString &filter, const bool onFi
 
   m_viewControl.SetItems(*m_vecItems);
 
-  if(onFilter && selectedItemDbId >= 0) {
+  if(onUpdate && selectedItemDbId >= 0) {
     int selectedItemIndex = -1;
 
     for (int i = 0; i < m_vecItems->Size(); ++i) {
@@ -1340,7 +1352,92 @@ void CGUIWindowVideoNav::OnFilterItems(const CStdString &filter, const bool onFi
 
   UpdateButtons();
 
-  CLog::Log(LOGDEBUG, "%s(%s) took %d ms ", __FUNCTION__, (onFilter ? "true" : "false"), XbmcThreads::SystemClockMillis() - timeFull);
+  CLog::Log(LOGDEBUG, "%s(%s) took %d ms ", __FUNCTION__, (onUpdate ? "true" : "false"), XbmcThreads::SystemClockMillis() - timeFull);
 }
 
+void CGUIWindowVideoNav::UpdateFileList() {
+  unsigned int timeFull = XbmcThreads::SystemClockMillis();
+  CLog::Log(LOGDEBUG, "%s started", __FUNCTION__);
 
+  int selectedItemDbId = -1;
+  int selectedItemIndex = m_viewControl.GetSelectedItem();
+
+  if (selectedItemIndex >= 0 && selectedItemIndex < m_vecItems->Size()) {
+    CFileItemPtr pItem = m_vecItems->Get(selectedItemIndex);
+
+    if(pItem->HasVideoInfoTag())
+      selectedItemDbId = pItem->GetVideoInfoTag()->m_iDbId;
+  }
+
+  FormatAndSort(*m_vecItems);
+  UpdateButtons();
+
+  m_viewControl.SetItems(*m_vecItems);
+
+  if(selectedItemDbId >= 0) {
+    selectedItemIndex = -1;
+
+    for (int i = 0; i < m_vecItems->Size(); ++i) {
+      CFileItemPtr pItem = m_vecItems->Get(i);
+
+      if(pItem->HasVideoInfoTag() && pItem->GetVideoInfoTag()->m_iDbId == selectedItemDbId) {
+        selectedItemIndex = i;
+        break;
+      }
+    }
+
+    m_viewControl.SetSelectedItem(selectedItemIndex);
+  }
+
+  //  set the currently playing item as selected, if its in this directory
+  if (m_guiState.get() && m_guiState->IsCurrentPlaylistDirectory(m_vecItems->GetPath()))
+  {
+    int iPlaylist=m_guiState->GetPlaylist();
+    int nSong = g_playlistPlayer.GetCurrentSong();
+    CFileItem playlistItem;
+    if (nSong > -1 && iPlaylist > -1)
+      playlistItem=*g_playlistPlayer.GetPlaylist(iPlaylist)[nSong];
+
+    g_playlistPlayer.ClearPlaylist(iPlaylist);
+    g_playlistPlayer.Reset();
+
+    for (int i = 0; i < m_vecItems->Size(); i++)
+    {
+      CFileItemPtr pItem = m_vecItems->Get(i);
+      if (pItem->m_bIsFolder)
+        continue;
+
+      if (!pItem->IsPlayList() && !pItem->IsZIP() && !pItem->IsRAR())
+        g_playlistPlayer.Add(iPlaylist, pItem);
+
+      if (pItem->GetPath() == playlistItem.GetPath() &&
+          pItem->m_lStartOffset == playlistItem.m_lStartOffset)
+        g_playlistPlayer.SetCurrentSong(g_playlistPlayer.GetPlaylist(iPlaylist).size() - 1);
+    }
+  }
+
+  CLog::Log(LOGDEBUG, "%s finished in %d ms", __FUNCTION__, XbmcThreads::SystemClockMillis() - timeFull);
+}
+
+int CGUIWindowVideoNav::GetItemIndexByIndent(CStdString &itemIdent) {
+  CStdString currentItemIdent;
+
+  for(int i = 0; i < m_vecItems->Size(); ++i) {
+    CFileItemPtr pItem = m_vecItems->Get(i);
+    GetDirectoryHistoryString(pItem.get(), currentItemIdent);
+
+    if (currentItemIdent == itemIdent)
+      return i;
+  }
+
+  return -1;
+}
+
+void CGUIWindowVideoNav::OnInitWindow() {
+  if(!m_selectedItemIdent.empty())
+    m_iSelectedItem = -1;
+
+  CGUIWindowVideoBase::OnInitWindow();
+
+  m_selectedItemIdent.clear();
+}
