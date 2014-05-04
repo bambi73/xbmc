@@ -102,6 +102,7 @@ CGUIMediaWindow::CGUIMediaWindow(int id, const char *xmlFile)
 CGUIMediaWindow::~CGUIMediaWindow()
 {
   CLog::Log(LOGDEBUG, "CGUIMediaWindow destroyed");
+  m_mapSelectedItemIdent.clear();
 
   delete m_vecItems;
   delete m_unfilteredItems;
@@ -241,10 +242,19 @@ bool CGUIMediaWindow::OnMessage(CGUIMessage& message)
       m_iSelectedItem = m_viewControl.GetSelectedItem();
       m_iLastControl = GetFocusedControlID();
 
+      CLog::Log(LOGDEBUG, "%s: ### m_vecItems->GetPath() = %s, m_startDirectory = %s",
+          __FUNCTION__, m_vecItems->GetPath().c_str(), m_startDirectory.c_str());
+
+      CStdString selectedItemIdent;
       if(m_vecItems->GetPath() != m_startDirectory)
-        m_selectedItemIdent = m_history.GetSelectedItem(m_startDirectory);
+        selectedItemIdent = m_history.GetSelectedItem(m_startDirectory);
       else
-        GetSelectedItemIdent(m_selectedItemIdent);
+        GetSelectedItemIdent(selectedItemIdent);
+
+      m_mapSelectedItemIdent[m_startDirectory] = selectedItemIdent;
+
+      CLog::Log(LOGDEBUG, "%s: %s ### selectedItemIdent = %s",
+          __FUNCTION__, "GUI_MSG_WINDOW_DEINIT", selectedItemIdent.c_str());
 
       CGUIWindow::OnMessage(message);
       CGUIDialogContextMenu* pDlg = (CGUIDialogContextMenu*)g_windowManager.GetWindow(WINDOW_DIALOG_CONTEXT_MENU);
@@ -758,30 +768,37 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
   unsigned int timePart = XbmcThreads::SystemClockMillis();
 	CLog::Log(LOGDEBUG, "%s started", __FUNCTION__);
 
+	CLog::Log(LOGDEBUG, "%s: strDirectory == m_vecItems->GetPath() => %s",
+	    __FUNCTION__, strDirectory == m_vecItems->GetPath() ? "true" : "false");
+	CLog::Log(LOGDEBUG, "%s: strDirectory == m_startDirectory => %s",
+	    __FUNCTION__, strDirectory == m_startDirectory ? "true" : "false");
+  CLog::Log(LOGDEBUG, "%s: m_startDirectory == m_vecItems->GetPath() => %s",
+      __FUNCTION__, m_startDirectory == m_vecItems->GetPath() ? "true" : "false");
+
+  CLog::Log(LOGDEBUG, "%s:", __FUNCTION__);
+  CLog::Log(LOGDEBUG, "%s: m_vecItems->GetPath() = %s", __FUNCTION__, m_vecItems->GetPath().c_str());
+  CLog::Log(LOGDEBUG, "%s: strDirectory = %s", __FUNCTION__, strDirectory.c_str());
+  CLog::Log(LOGDEBUG, "%s: m_startDirectory = %s", __FUNCTION__, m_startDirectory.c_str());
+
+  CLog::Log(LOGDEBUG, "%s: m_viewControl.GetSelectedItem() = %d", __FUNCTION__, m_viewControl.GetSelectedItem());
+  CLog::Log(LOGDEBUG, "%s: m_viewControl.GetCurrentControl() = %d", __FUNCTION__, m_viewControl.GetCurrentControl());
 
   // TODO: OnInitWindow calls Update() before window path has been set properly.
   if (strDirectory == "?")
     return false;
 
   // get selected item
-  CStdString strSelectedItem;
-
-  if(!m_selectedItemIdent.empty()) {
-    strSelectedItem = m_selectedItemIdent;
-  }
-  else {
-    int selectedItemIndex = m_viewControl.GetSelectedItem();
-    if (selectedItemIndex >= 0 && selectedItemIndex < m_vecItems->Size()) {
-      CFileItemPtr pItem = m_vecItems->Get(selectedItemIndex);
-
-      if (!pItem->IsParentFolder()) {
-        GetDirectoryHistoryString(pItem.get(), strSelectedItem);
-      }
-    }
-  }
+  CStdString selectedItemIdent;
+  map<CStdString, CStdString>::iterator iterator = m_mapSelectedItemIdent.find(m_startDirectory);
+  if(iterator != m_mapSelectedItemIdent.end())
+    selectedItemIdent = (*iterator).second;
+  else
+    GetSelectedItemIdent(selectedItemIdent);
   
-  CStdString strCurrentDirectory = m_vecItems->GetPath();
-  m_history.SetSelectedItem(strSelectedItem, strCurrentDirectory);
+  CLog::Log(LOGDEBUG, "%s: selectedItemIdent = %s", __FUNCTION__, selectedItemIdent.c_str());
+
+  m_history.SetSelectedItem(selectedItemIdent, m_vecItems->GetPath());
+  m_history.DumpSelectionHistory();
 
   CStdString directory = strDirectory;
   // check if the path contains a filter and temporarily remove it
@@ -798,13 +815,15 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
     CLog::Log(LOGERROR,"CGUIMediaWindow::GetDirectory(%s) failed", url.GetRedacted().c_str());
     // Try to return to the previous directory, if not the same
     // else fallback to root
-    if (strDirectory.Equals(strCurrentDirectory) || !Update(m_history.RemoveParentPath()))
+    if (strDirectory.Equals(m_vecItems->GetPath()) || !Update(m_history.RemoveParentPath()))
       Update(""); // Fallback to root
 
     // Return false to be able to eg. show
     // an error message.
     return false;
   }
+
+  m_history.DumpSelectionHistory();
 
   if (m_vecItems->GetLabel().empty())
     m_vecItems->SetLabel(CUtil::GetTitleFromPath(m_vecItems->GetPath(), true));
@@ -869,7 +888,6 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
   OnPrepareFileItems(*m_vecItems);
 
   m_vecItems->FillInDefaultIcons();
-
   m_guiState.reset(CGUIViewState::GetViewState(GetID(), *m_vecItems));
 
   // remember the original (untouched) list of items (for filtering etc)
@@ -884,7 +902,7 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
 
 
   // Filter and group the items if necessary
-  OnFilterItems(GetProperty("filter").asString(), false);
+  OnFilterItems(GetProperty("filter").asString(), true);
 
   // Ask the devived class if it wants to do custom list operations,
   // eg. changing the label
@@ -894,29 +912,12 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
   CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIMediaWindow::Update part 4", XbmcThreads::SystemClockMillis() - timePart);
   timePart = XbmcThreads::SystemClockMillis();
 
+  m_history.DumpSelectionHistory();
 
-  strSelectedItem = m_history.GetSelectedItem(m_vecItems->GetPath());
-  CLog::Log(LOGDEBUG, "### %s strSelectedItem = %s", __FUNCTION__, strSelectedItem.c_str());
-  CLog::Log(LOGDEBUG, "### %s m_viewControl.GetSelectedItem() = %d", __FUNCTION__, m_viewControl.GetSelectedItem());
+  selectedItemIdent = m_history.GetSelectedItem(m_vecItems->GetPath());
+  int selectedItemIndex = GetItemIndexByIndent(selectedItemIdent);
 
-  bool bSelectedFound = false;
-  for (int i = 0; i < m_vecItems->Size(); ++i) {
-    CFileItemPtr pItem = m_vecItems->Get(i);
-
-    // Update selected item
-    CStdString historyItemIdent;
-    GetDirectoryHistoryString(pItem.get(), historyItemIdent);
-
-    if (historyItemIdent == strSelectedItem) {
-      m_viewControl.SetSelectedItem(i);
-      bSelectedFound = true;
-      break;
-    }
-  }
-
-  // if we haven't found the selected item, select the first item
-  if (!bSelectedFound)
-    m_viewControl.SetSelectedItem(0);
+  m_viewControl.SetSelectedItem(selectedItemIndex >= 0 ? selectedItemIndex : 0);
 
   if (iWindow != WINDOW_PVR ||
       (iWindow == WINDOW_PVR && StringUtils::StartsWith(m_vecItems->GetPath(), "pvr://recordings/")))
@@ -933,10 +934,7 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory, bool updateFilterPa
 bool CGUIMediaWindow::Refresh(bool clearCache /* = false */)
 {
   unsigned int time = XbmcThreads::SystemClockMillis();
-  if (clearCache)
-  	CLog::Log(LOGDEBUG, "%s(%s) started", "CGUIMediaWindow::Refresh", "true");
-  else
-  	CLog::Log(LOGDEBUG, "%s(%s) started", "CGUIMediaWindow::Refresh", "false");
+	CLog::Log(LOGDEBUG, "%s(%s) started", __FUNCTION__, clearCache ? "true" : "false");
 
   CStdString strCurrentDirectory = m_vecItems->GetPath();
   if (strCurrentDirectory.Equals("?"))
@@ -947,11 +945,11 @@ bool CGUIMediaWindow::Refresh(bool clearCache /* = false */)
 
   // get the original number of items
   if (!Update(strCurrentDirectory, false)) {
-    CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIMediaWindow::Refresh:false", XbmcThreads::SystemClockMillis() - time);
+    CLog::Log(LOGDEBUG, "%s took %d ms ", __FUNCTION__, XbmcThreads::SystemClockMillis() - time);
     return false;
   }
 
-  CLog::Log(LOGDEBUG, "%s took %d ms ", "CGUIMediaWindow::Refresh:true", XbmcThreads::SystemClockMillis() - time);
+  CLog::Log(LOGDEBUG, "%s took %d ms ", __FUNCTION__, XbmcThreads::SystemClockMillis() - time);
 
   return true;
 }
@@ -1555,10 +1553,16 @@ void CGUIMediaWindow::OnInitWindow()
     m_startDirectory = m_vecItems->GetPath();
 
   m_rootDir.SetAllowThreads(true);
-  m_selectedItemIdent.clear();
+  m_mapSelectedItemIdent.erase(m_startDirectory);
 
-//  if (m_iSelectedItem > -1)
-//    m_viewControl.SetSelectedItem(m_iSelectedItem);
+  int selectedItemIndex = m_viewControl.GetSelectedItem();
+  int currentControlId = m_viewControl.GetCurrentControl();
+
+  for(vector<CControlState>::iterator it = m_controlStates.begin(); it != m_controlStates.end(); ++it) {
+    CControlState *controlStatePtr = &(*it);
+    if(controlStatePtr->m_id == currentControlId)
+      controlStatePtr->m_data = selectedItemIndex;
+  }
 
   CGUIWindow::OnInitWindow();
 
@@ -2137,10 +2141,24 @@ CStdString CGUIMediaWindow::RemoveParameterFromPath(const CStdString &strDirecto
 void CGUIMediaWindow::GetSelectedItemIdent(CStdString &selectedItemIdent) {
   int selectedItemIndex = m_viewControl.GetSelectedItem();
 
-  CLog::Log(LOGDEBUG, "%s: selectedItemIndex = %d", __FUNCTION__, selectedItemIndex);
-
   if (selectedItemIndex >= 0 && selectedItemIndex < m_vecItems->Size()) {
     CFileItemPtr pItem = m_vecItems->Get(selectedItemIndex);
-    GetDirectoryHistoryString(pItem.get(), selectedItemIdent);
+    if(!pItem->IsParentFolder())
+      GetDirectoryHistoryString(pItem.get(), selectedItemIdent);
   }
 }
+
+int CGUIMediaWindow::GetItemIndexByIndent(CStdString &itemIdent) {
+  if(!itemIdent.empty()) {
+    CStdString currentItemIdent;
+
+    for(int i = 0; i < m_vecItems->Size(); ++i) {
+      GetDirectoryHistoryString(m_vecItems->Get(i).get(), currentItemIdent);
+      if(currentItemIdent == itemIdent)
+        return i;
+    }
+  }
+
+  return -1;
+}
+

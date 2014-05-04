@@ -65,7 +65,6 @@ protected:
   virtual bool OnContextButton(int itemNumber, CONTEXT_BUTTON button);
   virtual bool OnClick(int iItem);
   virtual void OnFilterItems(const CStdString &filter, const bool onUpdate = false);
-  virtual void OnInitWindow();
   virtual CStdString GetStartFolder(const CStdString &dir);
 
   virtual CStdString GetQuickpathName(const CStdString& strPath) const;
@@ -74,8 +73,4 @@ protected:
   virtual void UpdateFileList();
 
   VECSOURCES m_shares;
-
-private:
-  int  GetItemIndexByIndent(CStdString &itemIdent);
-
 };

@@ -149,7 +149,9 @@ protected:
    \param dir the folder the user wants
    \return the resulting path */
   virtual CStdString GetStartFolder(const CStdString &url);
+
   virtual void GetSelectedItemIdent(CStdString &selectedItemIdent);
+  virtual int  GetItemIndexByIndent(CStdString &itemIdent);
 
   /*! \brief Utility method to remove the given parameter from a path/URL
    \param strDirectory Path/URL from which to remove the given parameter
@@ -187,6 +189,7 @@ protected:
    \sa Update
    */
   CStdString m_strFilterPath;
-  CStdString m_selectedItemIdent;
+
+  std::map<CStdString, CStdString> m_mapSelectedItemIdent;
 
 };

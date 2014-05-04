@@ -1240,33 +1240,14 @@ void CGUIWindowVideoNav::GetDirectoryHistoryString(const CFileItem* pItem, CStdS
 
 void CGUIWindowVideoNav::OnFilterItems(const CStdString &filter, const bool onUpdate) {
   unsigned int timeFull = XbmcThreads::SystemClockMillis();
+  CLog::Log(LOGDEBUG, "%s(%s) started", __FUNCTION__, (onUpdate ? "true" : "false"));
 
   CStdString selectedItemIdent;
-  int selectedItemDbId = -1;
 
-  CLog::Log(LOGDEBUG, "### %s m_iSelectedItem = %d", __FUNCTION__, m_iSelectedItem);
-
-  if(!onUpdate) {
-    int selectedItemIndex = m_viewControl.GetSelectedItem();
-    if (selectedItemIndex >= 0 && selectedItemIndex < m_vecItems->Size()) {
-      CFileItemPtr pItem = m_vecItems->Get(selectedItemIndex);
-
-      if(pItem->HasVideoInfoTag())
-        selectedItemDbId = pItem->GetVideoInfoTag()->m_iDbId;
-    }
-    CLog::Log(LOGDEBUG, "### %s selectedItemDbId = %s", __FUNCTION__, selectedItemDbId);
-  }
-  else {
+  if(onUpdate)
     selectedItemIdent = m_history.GetSelectedItem(m_vecItems->GetPath());
-
-    if(!selectedItemIdent || selectedItemIdent.empty()) {
-      CLog::Log(LOGDEBUG, "### %s selectedItemIdent empty", __FUNCTION__, selectedItemIdent.c_str());
-      if (m_iSelectedItem >= 0 && m_iSelectedItem < m_vecItems->Size())
-        GetDirectoryHistoryString(m_vecItems->Get(m_iSelectedItem).get(), selectedItemIdent);
-    }
-
-    CLog::Log(LOGDEBUG, "### %s selectedItemIdent = %s", __FUNCTION__, selectedItemIdent.c_str());
-  }
+  else
+    GetSelectedItemIdent(selectedItemIdent);
 
   m_viewControl.Clear();
 
@@ -1289,31 +1270,10 @@ void CGUIWindowVideoNav::OnFilterItems(const CStdString &filter, const bool onUp
 
   GetGroupedItems(*m_vecItems);
 
-  int selectedItemIndex = -1;
-  for (int i = 0; i < m_vecItems->Size(); ++i) {
-    CFileItemPtr pItem = m_vecItems->Get(i);
-
-    if(!onUpdate) {
-      if(pItem->HasVideoInfoTag() && pItem->GetVideoInfoTag()->m_iDbId == selectedItemDbId) {
-        selectedItemIndex = i;
-        break;
-      }
-    }
-    else {
-      CStdString historyItemIdent;
-      GetDirectoryHistoryString(pItem.get(), historyItemIdent);
-
-      if (historyItemIdent == selectedItemIdent) {
-        selectedItemIndex = i;
-        break;
-      }
-    }
-  }
-
   if (m_thumbLoader.IsLoading())
     m_thumbLoader.StopThread();
 
-  m_thumbLoader.Load(items, selectedItemIndex);
+  m_thumbLoader.Load(items, GetItemIndexByIndent(selectedItemIdent));
 
   FormatAndSort(*m_vecItems);
 
@@ -1335,20 +1295,8 @@ void CGUIWindowVideoNav::OnFilterItems(const CStdString &filter, const bool onUp
 
   m_viewControl.SetItems(*m_vecItems);
 
-  if(onUpdate && selectedItemDbId >= 0) {
-    int selectedItemIndex = -1;
-
-    for (int i = 0; i < m_vecItems->Size(); ++i) {
-      CFileItemPtr pItem = m_vecItems->Get(i);
-
-      if(pItem->HasVideoInfoTag() && pItem->GetVideoInfoTag()->m_iDbId == selectedItemDbId) {
-        selectedItemIndex = i;
-        break;
-      }
-    }
-
-    m_viewControl.SetSelectedItem(selectedItemIndex);
-  }
+  if(!onUpdate)
+    m_viewControl.SetSelectedItem(GetItemIndexByIndent(selectedItemIdent));
 
   UpdateButtons();
 
@@ -1417,27 +1365,4 @@ void CGUIWindowVideoNav::UpdateFileList() {
   }
 
   CLog::Log(LOGDEBUG, "%s finished in %d ms", __FUNCTION__, XbmcThreads::SystemClockMillis() - timeFull);
-}
-
-int CGUIWindowVideoNav::GetItemIndexByIndent(CStdString &itemIdent) {
-  CStdString currentItemIdent;
-
-  for(int i = 0; i < m_vecItems->Size(); ++i) {
-    CFileItemPtr pItem = m_vecItems->Get(i);
-    GetDirectoryHistoryString(pItem.get(), currentItemIdent);
-
-    if (currentItemIdent == itemIdent)
-      return i;
-  }
-
-  return -1;
-}
-
-void CGUIWindowVideoNav::OnInitWindow() {
-  if(!m_selectedItemIdent.empty())
-    m_iSelectedItem = -1;
-
-  CGUIWindowVideoBase::OnInitWindow();
-
-  m_selectedItemIdent.clear();
 }
