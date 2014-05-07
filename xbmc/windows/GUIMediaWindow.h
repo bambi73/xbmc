@@ -189,7 +189,4 @@ protected:
    \sa Update
    */
   CStdString m_strFilterPath;
-
-  std::map<CStdString, CStdString> m_mapSelectedItemIdent;
-
 };
