@@ -96,7 +96,7 @@ protected:
   virtual bool Update(const CStdString &strDirectory, bool updateFilterPath = true);
   virtual bool GetDirectory(const CStdString &strDirectory, CFileItemList &items);
   virtual void OnItemLoaded(CFileItem* pItem) {};
-  virtual void GetGroupedItems(CFileItemList &items);
+  virtual void GetGroupedItems(CFileItemList &items, int startIndex = 0);
 
   virtual bool CheckFilterAdvanced(CFileItemList &items) const;
   virtual bool CanContainFilter(const CStdString &strDirectory) const;
@@ -108,6 +108,8 @@ protected:
   virtual void OnDeleteItem(int iItem);
   virtual void DoSearch(const CStdString& strSearch, CFileItemList& items) {};
   virtual CStdString GetStartFolder(const CStdString &dir);
+
+  virtual bool GetNormalDirectoryHistoryString(const CFileItem* pItem, CStdString& strHistoryString);
 
   bool OnClick(int iItem);
   bool OnSelect(int iItem);

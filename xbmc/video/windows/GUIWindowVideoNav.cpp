@@ -29,7 +29,6 @@
 #include "dialogs/GUIDialogFileBrowser.h"
 #include "filesystem/VideoDatabaseDirectory.h"
 #include "playlists/PlayListFactory.h"
-#include "playlists/PlayList.h"
 #include "dialogs/GUIDialogOK.h"
 #include "addons/AddonManager.h"
 #include "PartyModeManager.h"
@@ -81,8 +80,6 @@ using namespace std;
 #define CONTROL_LABELEMPTY        18
 
 #define CONTROL_UPDATE_LIBRARY    20
-
-#define PROPERTY_PATH_DB  "path.db"
 
 CGUIWindowVideoNav::CGUIWindowVideoNav(void)
     : CGUIWindowVideoBase(WINDOW_VIDEO_NAV, "MyVideoNav.xml")
@@ -1219,150 +1216,7 @@ bool CGUIWindowVideoNav::ApplyWatchedFilter(CFileItemList &items)
     // the watched filter may change the "numepisodes" property which is reflected in the TV_SHOWS and SEASONS nodes
     // therefore, the items labels have to be refreshed, and possibly the list needs resorting as well.
     items.ClearSortState(); // this is needed to force resorting even if sort method did not change
-//    FormatAndSort(items);
   }
 
   return listchanged;
-}
-
-void CGUIWindowVideoNav::GetDirectoryHistoryString(const CFileItem* pItem, CStdString& strHistoryString) {
-  if (pItem->m_bIsShareOrDrive || (pItem->m_lEndOffset>pItem->m_lStartOffset && pItem->m_lStartOffset != -1) || !pItem->HasVideoInfoTag()) {
-    CGUIMediaWindow::GetDirectoryHistoryString(pItem, strHistoryString);
-  }
-  else {
-    strHistoryString = StringUtils::Format("%d",pItem->GetVideoInfoTag()->m_iDbId);
-  }
-}
-
-//void CGUIWindowVideoNav::OnFilterItems(const CStdString &filter, const bool onFilter) {
-//  CGUIMediaWindow::OnFilterItems(filter);
-//}
-
-void CGUIWindowVideoNav::OnFilterItems(const CStdString &filter, const bool onUpdate) {
-  unsigned int timeFull = XbmcThreads::SystemClockMillis();
-  CLog::Log(LOGDEBUG, "%s(%s) started", __FUNCTION__, (onUpdate ? "true" : "false"));
-
-  CStdString selectedItemIdent;
-
-  if(onUpdate)
-    selectedItemIdent = m_history.GetSelectedItem(m_vecItems->GetPath());
-  else
-    GetSelectedItemIdent(selectedItemIdent);
-
-  m_viewControl.Clear();
-
-  CFileItemList items;
-  items.Copy(*m_vecItems, false);
-  items.Append(*m_unfilteredItems);
-
-  bool filtered = GetFilteredItems(filter, items);
-
-  m_vecItems->ClearItems();
-  m_vecItems->ClearSortState();
-  m_vecItems->Append(items);
-
-  if(filtered && m_canFilterAdvanced) {
-    if (items.HasProperty(PROPERTY_PATH_DB))
-      m_strFilterPath = items.GetProperty(PROPERTY_PATH_DB).asString();
-    else if (m_strFilterPath.empty())
-      m_strFilterPath = items.GetPath();
-  }
-
-  GetGroupedItems(*m_vecItems);
-
-  if (m_thumbLoader.IsLoading())
-    m_thumbLoader.StopThread();
-
-  m_thumbLoader.Load(items, GetItemIndexByIndent(selectedItemIdent));
-
-  FormatAndSort(*m_vecItems);
-
-  CStdString filterOption;
-  CURL filterUrl(m_strFilterPath);
-  if (filterUrl.HasOption("filter"))
-    filterOption = filterUrl.GetOption("filter");
-
-  SetProperty("filter", filter);
-
-  if (m_vecItems->IsEmpty()) {
-    CFileItemPtr pItem(new CFileItem(".."));
-    pItem->SetPath(m_history.GetParentPath());
-    pItem->m_bIsFolder = true;
-    pItem->m_bIsShareOrDrive = false;
-
-    m_vecItems->AddFront(pItem, 0);
-  }
-
-  m_viewControl.SetItems(*m_vecItems);
-
-  if(!onUpdate)
-    m_viewControl.SetSelectedItem(GetItemIndexByIndent(selectedItemIdent));
-
-  UpdateButtons();
-
-  CLog::Log(LOGDEBUG, "%s(%s) took %d ms ", __FUNCTION__, (onUpdate ? "true" : "false"), XbmcThreads::SystemClockMillis() - timeFull);
-}
-
-void CGUIWindowVideoNav::UpdateFileList() {
-  unsigned int timeFull = XbmcThreads::SystemClockMillis();
-  CLog::Log(LOGDEBUG, "%s started", __FUNCTION__);
-
-  int selectedItemDbId = -1;
-  int selectedItemIndex = m_viewControl.GetSelectedItem();
-
-  if (selectedItemIndex >= 0 && selectedItemIndex < m_vecItems->Size()) {
-    CFileItemPtr pItem = m_vecItems->Get(selectedItemIndex);
-
-    if(pItem->HasVideoInfoTag())
-      selectedItemDbId = pItem->GetVideoInfoTag()->m_iDbId;
-  }
-
-  FormatAndSort(*m_vecItems);
-  UpdateButtons();
-
-  m_viewControl.SetItems(*m_vecItems);
-
-  if(selectedItemDbId >= 0) {
-    selectedItemIndex = -1;
-
-    for (int i = 0; i < m_vecItems->Size(); ++i) {
-      CFileItemPtr pItem = m_vecItems->Get(i);
-
-      if(pItem->HasVideoInfoTag() && pItem->GetVideoInfoTag()->m_iDbId == selectedItemDbId) {
-        selectedItemIndex = i;
-        break;
-      }
-    }
-
-    m_viewControl.SetSelectedItem(selectedItemIndex);
-  }
-
-  //  set the currently playing item as selected, if its in this directory
-  if (m_guiState.get() && m_guiState->IsCurrentPlaylistDirectory(m_vecItems->GetPath()))
-  {
-    int iPlaylist=m_guiState->GetPlaylist();
-    int nSong = g_playlistPlayer.GetCurrentSong();
-    CFileItem playlistItem;
-    if (nSong > -1 && iPlaylist > -1)
-      playlistItem=*g_playlistPlayer.GetPlaylist(iPlaylist)[nSong];
-
-    g_playlistPlayer.ClearPlaylist(iPlaylist);
-    g_playlistPlayer.Reset();
-
-    for (int i = 0; i < m_vecItems->Size(); i++)
-    {
-      CFileItemPtr pItem = m_vecItems->Get(i);
-      if (pItem->m_bIsFolder)
-        continue;
-
-      if (!pItem->IsPlayList() && !pItem->IsZIP() && !pItem->IsRAR())
-        g_playlistPlayer.Add(iPlaylist, pItem);
-
-      if (pItem->GetPath() == playlistItem.GetPath() &&
-          pItem->m_lStartOffset == playlistItem.m_lStartOffset)
-        g_playlistPlayer.SetCurrentSong(g_playlistPlayer.GetPlaylist(iPlaylist).size() - 1);
-    }
-  }
-
-  CLog::Log(LOGDEBUG, "%s finished in %d ms", __FUNCTION__, XbmcThreads::SystemClockMillis() - timeFull);
 }

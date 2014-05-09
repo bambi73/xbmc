@@ -127,8 +127,6 @@ bool CDirectory::GetDirectory(const CStdString& strPath, CFileItemList &items, c
 
 bool CDirectory::GetDirectory(const CStdString& strPath, CFileItemList &items, const CHints &hints, bool allowThreads)
 {
-  unsigned int timeFull = XbmcThreads::SystemClockMillis();
-
   try
   {
     CStdString realPath = URIUtils::SubstitutePath(strPath);
@@ -236,8 +234,6 @@ bool CDirectory::GetDirectory(const CStdString& strPath, CFileItemList &items, c
         item->SetPath(URIUtils::SubstitutePath(item->GetPath(), true));
       }
     }
-
-    CLog::Log(LOGDEBUG, "%s took %d ms ", __FUNCTION__, XbmcThreads::SystemClockMillis() - timeFull);
 
     return true;
   }

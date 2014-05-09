@@ -1765,7 +1765,7 @@ bool CGUIWindowVideoBase::StackingAvailable(const CFileItemList &items)
            url.GetProtocol() == "playlistvideo");
 }
 
-void CGUIWindowVideoBase::GetGroupedItems(CFileItemList &items)
+void CGUIWindowVideoBase::GetGroupedItems(CFileItemList &items, int startIndex /* = 0 */)
 {
   CGUIMediaWindow::GetGroupedItems(items);
 
@@ -1797,10 +1797,10 @@ void CGUIWindowVideoBase::GetGroupedItems(CFileItemList &items)
   }
 
   // reload thumbs after filtering and grouping
-//  if (m_thumbLoader.IsLoading())
-//    m_thumbLoader.StopThread();
-//
-//  m_thumbLoader.Load(items);
+  if (m_thumbLoader.IsLoading())
+    m_thumbLoader.StopThread();
+
+  m_thumbLoader.Load(items, startIndex);
 }
 
 bool CGUIWindowVideoBase::CheckFilterAdvanced(CFileItemList &items) const
@@ -2116,4 +2116,13 @@ void CGUIWindowVideoBase::OnInitWindow()
       CSettings::Get().Save();
     }
   }
+}
+
+bool CGUIWindowVideoBase::GetNormalDirectoryHistoryString(const CFileItem* pItem, CStdString& strHistoryString) {
+  if (pItem->HasVideoInfoTag()) {
+    strHistoryString = StringUtils::Format("%d",pItem->GetVideoInfoTag()->m_iDbId);
+    return true;
+  }
+
+  return false;
 }

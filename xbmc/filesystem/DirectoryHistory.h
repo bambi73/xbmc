@@ -61,7 +61,6 @@ public:
   void ClearPathHistory();
   void ClearSearchHistory();
   void DumpPathHistory();
-  void DumpSelectionHistory();
 
 private:
   static CStdString preparePath(const CStdString &strDirectory, bool tolower = true);

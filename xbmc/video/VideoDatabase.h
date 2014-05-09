@@ -332,9 +332,7 @@ const struct SDbTableOffsets DbMusicVideoOffsets[] =
 #define COMPARE_PERCENTAGE     0.90f // 90%
 #define COMPARE_PERCENTAGE_MIN 0.50f // 50%
 
-
 /* Tady je Bambiho */
-
 typedef boost::shared_ptr< CFileItemList > CFileItemListPtr;
 
 typedef std::map< int, CFileItemPtr > MAP_INT2FILEITEMPTR;
@@ -387,11 +385,6 @@ public:
   MAP_INT2TVSHOWCACHEITEMPTRSET m_tvShowId2TvShowCacheItemPtrSet;
 
 };
-
-
-
-
-
 
 class CVideoDatabase : public CDatabase
 {
@@ -897,5 +890,4 @@ private:
   void UpdateTvShowFileItemById(int showId);
 
   static CTvShowCache sm_TvShowCache;
-
 };

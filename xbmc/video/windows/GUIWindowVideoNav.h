@@ -64,13 +64,9 @@ protected:
   virtual void GetContextButtons(int itemNumber, CContextButtons &buttons);
   virtual bool OnContextButton(int itemNumber, CONTEXT_BUTTON button);
   virtual bool OnClick(int iItem);
-  virtual void OnFilterItems(const CStdString &filter, const bool onUpdate = false);
   virtual CStdString GetStartFolder(const CStdString &dir);
 
   virtual CStdString GetQuickpathName(const CStdString& strPath) const;
-
-  virtual void GetDirectoryHistoryString(const CFileItem* pItem, CStdString& strHistoryString);
-  virtual void UpdateFileList();
 
   VECSOURCES m_shares;
 };

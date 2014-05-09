@@ -6038,7 +6038,10 @@ bool CVideoDatabase::GetTvShowsByWhere(const CStdString& strBaseDir, const Filte
       cacheTvShowCacheItemPtr = sqlQueryIter->second;
 
     if(cacheTvShowCacheItemPtr && !cacheTvShowCacheItemPtr->IsDirty()) {
+      CStdString originalPath = items.GetPath();
       items.Copy(*cacheTvShowCacheItemPtr->m_fileItemListPtr);
+      items.SetPath(originalPath);
+
       CLog::Log(LOGDEBUG, "%s took %d ms ", "CVideoDatabase::GetTvShowsByWhere", XbmcThreads::SystemClockMillis() - timeFull);
       return true;
     }

@@ -89,7 +89,7 @@ protected:
   virtual void OnPrepareFileItems(CFileItemList &items);
   virtual void OnCacheFileItems(CFileItemList &items);
   virtual void OnFinalizeFileItems(CFileItemList &items);
-  virtual void GetGroupedItems(CFileItemList &items) { }
+  virtual void GetGroupedItems(CFileItemList &items, int startIndex = 0) { }
 
   void ClearFileItems();
   virtual void SortItems(CFileItemList &items);
@@ -133,6 +133,7 @@ protected:
   virtual bool HaveDiscOrConnection(const CStdString& strPath, int iDriveType);
   void ShowShareErrorMessage(CFileItem* pItem);
 
+  virtual bool GetNormalDirectoryHistoryString(const CFileItem* pItem, CStdString& strHistoryString);
   virtual void GetDirectoryHistoryString(const CFileItem* pItem, CStdString& strHistoryString);
   void SetHistoryForPath(const CStdString& strDirectory);
   virtual void LoadPlayList(const CStdString& strFileName) {}
