@@ -2004,4 +2004,3 @@ int CGUIMediaWindow::GetItemIndexByIndent(CStdString &itemIdent) {
 
   return -1;
 }
-

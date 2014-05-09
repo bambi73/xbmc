@@ -69,6 +69,7 @@ protected:
   virtual void OnScan(int iItem) {};
   void OnRipCD();
   virtual CStdString GetStartFolder(const CStdString &dir);
+  virtual bool GetNormalDirectoryHistoryString(const CFileItem* pItem, CStdString& strHistoryString);
 
   virtual bool CheckFilterAdvanced(CFileItemList &items) const;
   virtual bool CanContainFilter(const CStdString &strDirectory) const;
