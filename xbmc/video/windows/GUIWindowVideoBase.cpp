@@ -1601,7 +1601,7 @@ void CGUIWindowVideoBase::PlayMovie(const CFileItem *item)
   g_playlistPlayer.Play(0);
 
   if(!g_application.m_pPlayer->IsPlayingVideo())
-    m_thumbLoader.Load(*m_vecItems);
+    m_thumbLoader.Load(*m_vecItems, m_viewControl.GetSelectedItem());
 }
 
 void CGUIWindowVideoBase::OnDeleteItem(int iItem)
@@ -1713,7 +1713,7 @@ bool CGUIWindowVideoBase::Update(const CStdString &strDirectory, bool updateFilt
 
   // might already be running from GetGroupedItems
   if (!m_thumbLoader.IsLoading())
-    m_thumbLoader.Load(*m_vecItems);
+    m_thumbLoader.Load(*m_vecItems, m_viewControl.GetSelectedItem());
 
   return true;
 }
@@ -2120,7 +2120,7 @@ void CGUIWindowVideoBase::OnInitWindow()
 
 bool CGUIWindowVideoBase::GetNormalDirectoryHistoryString(const CFileItem* pItem, CStdString& strHistoryString) {
   if (pItem->HasVideoInfoTag()) {
-    strHistoryString = StringUtils::Format("%d",pItem->GetVideoInfoTag()->m_iDbId);
+    strHistoryString = StringUtils::Format("%s-%d", pItem->GetVideoInfoTag()->m_type.c_str(), pItem->GetVideoInfoTag()->m_iDbId);
     return true;
   }
 
