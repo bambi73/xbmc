@@ -5542,7 +5542,7 @@ bool CVideoDatabase::GetSeasonsNav(const CStdString& strBaseDir, CFileItemList& 
       return false;
 
     CStdString strIn = PrepareSQL("= %i", idShow);
-    GetStackedTvShowList(idShow, strIn);
+//    GetStackedTvShowList(idShow, strIn);
 
     CStdString strSQL = PrepareSQL("SELECT episodeview.c%02d, "
                                           "path.strPath, "
@@ -6376,7 +6376,7 @@ bool CVideoDatabase::GetEpisodesNav(const CStdString& strBaseDir, CFileItemList&
   if (idShow != -1)
   {
     strIn = PrepareSQL("= %i", idShow);
-    GetStackedTvShowList(idShow, strIn);
+//    GetStackedTvShowList(idShow, strIn);
 
     videoUrl.AddOption("tvshowid", idShow);
     if (idSeason >= 0)
@@ -9622,7 +9622,7 @@ bool CVideoDatabase::GetFilter(CDbUrl &videoUrl, Filter &filter, SortDescription
         season = (int)option->second.asInteger();
 
       CStdString strIn = PrepareSQL("= %i", idShow);
-      GetStackedTvShowList(idShow, strIn);
+//      GetStackedTvShowList(idShow, strIn);
 
       if (idShow > -1)
       {
