@@ -6039,7 +6039,7 @@ bool CVideoDatabase::GetTvShowsByWhere(const CStdString& strBaseDir, const Filte
     if(sqlQueryIter != sm_TvShowCache.m_sqlQuery2TvShowCacheItemPtr.end())
       cacheTvShowCacheItemPtr = sqlQueryIter->second;
 
-    if(cacheTvShowCacheItemPtr && !cacheTvShowCacheItemPtr->IsDirty()) {
+    if(cacheTvShowCacheItemPtr && !cacheTvShowCacheItemPtr->IsDirty() && sortDescription.sortBy != SortByRandom) {
       CStdString originalPath = items.GetPath();
       items.Copy(*cacheTvShowCacheItemPtr->m_fileItemListPtr);
       items.SetPath(originalPath);
