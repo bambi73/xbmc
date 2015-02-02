@@ -879,7 +879,7 @@ msgstr "Liczba kanałów"
 
 msgctxt "#254"
 msgid "DTS capable receiver"
-msgstr "Wspiera format DTS"
+msgstr "Odbiornik wspiera DTS"
 
 msgctxt "#255"
 msgid "CDDB"
@@ -1055,15 +1055,15 @@ msgstr "Zakładki"
 
 msgctxt "#300"
 msgid "MP1 capable receiver"
-msgstr "Wspiera format MP1"
+msgstr "Odbiornik wspiera MP1"
 
 msgctxt "#301"
 msgid "MP2 capable receiver"
-msgstr "Wspiera format MP2"
+msgstr "Odbiornik wspiera MP2"
 
 msgctxt "#302"
 msgid "MP3 capable receiver"
-msgstr "Wspiera format MP3"
+msgstr "Odbiornik wspiera MP3"
 
 msgctxt "#303"
 msgid "Delay"
@@ -1231,7 +1231,7 @@ msgstr "Normalizuj poziomy przy miksowaniu"
 
 msgctxt "#347"
 msgid "DTS-HD capable receiver"
-msgstr "Wspiera format DTS-HD"
+msgstr "Odbiornik wspiera DTS-HD"
 
 msgctxt "#348"
 msgid "Enable passthrough"
@@ -1239,7 +1239,7 @@ msgstr "Dekoduj na zewnętrznym urządzeniu"
 
 msgctxt "#349"
 msgid "TrueHD capable receiver"
-msgstr "Wspiera format TrueHD"
+msgstr "Odbiornik wspiera TrueHD"
 
 msgctxt "#350"
 msgid "Programs"
@@ -1279,7 +1279,7 @@ msgstr "Wszystkie albumy"
 
 msgctxt "#359"
 msgid "Recently added albums"
-msgstr "Albumy ostatnio dodane"
+msgstr "Ostatnio dodane albumy"
 
 msgctxt "#360"
 msgid "Screensaver"
@@ -1299,7 +1299,7 @@ msgstr "Sortuj: Plik"
 
 msgctxt "#364"
 msgid "Dolby Digital (AC3) capable receiver"
-msgstr "Wspiera format Dolby Digital (AC3)"
+msgstr "Odbiornik wspiera Dolby Digital (AC3)"
 
 msgctxt "#365"
 msgid "Sort by: Name"
@@ -1623,11 +1623,11 @@ msgstr "DVD"
 
 msgctxt "#447"
 msgid "Autorun media"
-msgstr "Odtwarzaj automatyczne"
+msgstr "Odtwarzaj automatycznie"
 
 msgctxt "#448"
 msgid "Dolby Digital Plus (E-AC3) capable receiver"
-msgstr "Wspiera format Dolby Digital Plus (E-AC3)"
+msgstr "Odbiornik wspiera Dolby Digital Plus (E-AC3)"
 
 msgctxt "#449"
 msgid "Enabled"
@@ -1863,7 +1863,7 @@ msgstr "Gatunek"
 
 msgctxt "#517"
 msgid "Recently played albums"
-msgstr "Albumy ostatnio odtwarzane"
+msgstr "Ostatnio odtwarzane albumy"
 
 msgctxt "#518"
 msgid "Launch"
@@ -2163,7 +2163,7 @@ msgstr "Powtórz: Wyłączone"
 
 msgctxt "#596"
 msgid "Repeat: One"
-msgstr "Powtórz: Jeden"
+msgstr "Powtórz: Raz"
 
 msgctxt "#597"
 msgid "Repeat: All"
@@ -2187,7 +2187,7 @@ msgstr "Najwyższa"
 
 msgctxt "#604"
 msgid "Constant bitrate"
-msgstr "Stały bitrate"
+msgstr "Stała przepływność"
 
 msgctxt "#605"
 msgid "Ripping..."
@@ -2239,7 +2239,7 @@ msgstr "Jakość"
 
 msgctxt "#623"
 msgid "Bitrate"
-msgstr "Bitrate"
+msgstr "Przepływność"
 
 msgctxt "#624"
 msgid "Include track number"
@@ -2599,7 +2599,7 @@ msgstr "Edytuj głębokość ścieżki"
 
 msgctxt "#759"
 msgid "View: Big list"
-msgstr "Widok: Duża lista"
+msgstr "Widok: Lista szeroka"
 
 msgctxt "#760"
 msgid "Yellow"
@@ -2871,7 +2871,7 @@ msgstr "Wprowadź nazwę dla tego źródła mediów."
 
 msgctxt "#1023"
 msgid "Browse for new share"
-msgstr "Wskaż nowy udziały"
+msgstr "Wskaż nowy udział"
 
 msgctxt "#1024"
 msgid "Browse"
@@ -3503,7 +3503,7 @@ msgstr "Przeglądarka"
 
 msgctxt "#10025"
 msgid "Videos"
-msgstr "Wwideo"
+msgstr "Wideo"
 
 msgctxt "#10028"
 msgid "Videos/Playlist"
@@ -5631,7 +5631,7 @@ msgstr "Niepołączony"
 
 msgctxt "#15213"
 msgid "Play using..."
-msgstr "Użyj do odtwarzania..."
+msgstr "Odtwórz używając…"
 
 msgctxt "#15214"
 msgid "Use smoothed A/V synchronisation"
@@ -5919,11 +5919,11 @@ msgstr "Sinc (programowo)"
 
 msgctxt "#16310"
 msgid "Temporal"
-msgstr "Czasowo"
+msgstr "Temporal"
 
 msgctxt "#16311"
 msgid "Temporal/Spatial"
-msgstr "czasowy/przestrzenny"
+msgstr "Temporal/Spatial"
 
 msgctxt "#16312"
 msgid "(VDPAU)Noise Reduction"
@@ -5935,7 +5935,7 @@ msgstr "(VDPAU)Ostrość"
 
 msgctxt "#16314"
 msgid "Inverse Telecine"
-msgstr "Odwrócone Telecine"
+msgstr "Inverse Telecine"
 
 msgctxt "#16315"
 msgid "Lanczos3 optimised"
@@ -6275,7 +6275,7 @@ msgstr "Ikony kanałów"
 
 msgctxt "#19067"
 msgid "This event is already being recorded."
-msgstr "To zdarzenie już było nagrywane."
+msgstr "To zdarzenie jest już nagrywane."
 
 msgctxt "#19068"
 msgid "This recording could not be deleted. Check the log for details."
@@ -6523,7 +6523,7 @@ msgstr "Wyrażenie wyszukiwania"
 
 msgctxt "#19134"
 msgid "Include description"
-msgstr "Zawiera opis"
+msgstr "Uwzględnij opis"
 
 msgctxt "#19135"
 msgid "Case sensitive"
@@ -6935,7 +6935,7 @@ msgstr "Brak aktywnego klienta TV"
 
 msgctxt "#19241"
 msgid "The PVR manager has been enabled without any"
-msgstr "Menedżer TV został uruchomiony bez żadnej aktywnej"
+msgstr "Menedżer TV został uruchomiony bez żadnego aktywnego"
 
 msgctxt "#19242"
 msgid "enabled PVR Add-on. Enable at least one Add-on"
@@ -8431,7 +8431,7 @@ msgstr "Zawartość folderu"
 
 msgctxt "#20345"
 msgid "Run automated scan"
-msgstr "Uruchom automatyczne skanowanie"
+msgstr "Uruchom skanowanie automatyczne"
 
 msgctxt "#20346"
 msgid "Scan recursively"
@@ -8591,11 +8591,11 @@ msgstr "Usuń łącze do serialu"
 
 msgctxt "#20386"
 msgid "Recently added movies"
-msgstr "Filmy ostatnio dodane"
+msgstr "Ostatnio dodane filmy"
 
 msgctxt "#20387"
 msgid "Recently added episodes"
-msgstr "Odcinki ostatnio dodane"
+msgstr "Ostatnio dodane odcinki"
 
 msgctxt "#20388"
 msgid "Studios"
@@ -8667,11 +8667,11 @@ msgstr "Usuń zakładkę"
 
 msgctxt "#20405"
 msgid "Remove episode bookmark"
-msgstr "Odcinek - usuń zakładkę"
+msgstr "Usuń zakładkę odcinka"
 
 msgctxt "#20406"
 msgid "Set episode bookmark"
-msgstr "Odcinek - ustaw zakładkę"
+msgstr "Ustaw zakładkę odcinka"
 
 msgctxt "#20407"
 msgid "Scraper settings"
@@ -8695,15 +8695,15 @@ msgstr "Tylko tytuły"
 
 msgctxt "#20412"
 msgid "Flatten TV show seasons"
-msgstr "Pomijaj podział na sezony"
+msgstr "Spłaszczaj podział na sezony seriali"
 
 msgctxt "#20413"
 msgid "Get fanart"
-msgstr "Pobierz tapetę"
+msgstr "Pobierz Fanart"
 
 msgctxt "#20414"
 msgid "Show fanart in video and music libraries"
-msgstr "Pokazuj tapetę w trybie biblioteki wideo i muzyki"
+msgstr "Pokazuj Fanart w trybie biblioteki wideo i muzyki"
 
 msgctxt "#20415"
 msgid "Scanning for new content"
@@ -8747,7 +8747,7 @@ msgstr "Fałsz"
 
 msgctxt "#20425"
 msgid "Fanart slideshow"
-msgstr "Pokaz tapet"
+msgstr "Pokaz Fanartu"
 
 msgctxt "#20426"
 msgid "Export to a single file or separate"
@@ -8755,7 +8755,7 @@ msgstr "Eksportować do pojedynczego pliku"
 
 msgctxt "#20427"
 msgid "files per entry?"
-msgstr "czy rozdzielić pliki?"
+msgstr "czy do osobnych plików?"
 
 msgctxt "#20428"
 msgid "Single file"
@@ -8763,11 +8763,11 @@ msgstr "Jeden plik"
 
 msgctxt "#20429"
 msgid "Separate"
-msgstr "Oddziel"
+msgstr "Oddzielne"
 
 msgctxt "#20430"
 msgid "Export thumbnails and fanart?"
-msgstr "Eksportować miniatury i tapety?"
+msgstr "Eksportować miniatury i Fanart?"
 
 msgctxt "#20431"
 msgid "Overwrite old files?"
@@ -8795,23 +8795,23 @@ msgstr "Eksportować portrety aktorów?"
 
 msgctxt "#20437"
 msgid "Choose fanart"
-msgstr "Wybierz tapetę"
+msgstr "Wybierz Fanart"
 
 msgctxt "#20438"
 msgid "Local fanart"
-msgstr "Lokalna tapeta"
+msgstr "Lokalny Fanart"
 
 msgctxt "#20439"
 msgid "No fanart"
-msgstr "Brak tapety"
+msgstr "Brak Fanartu"
 
 msgctxt "#20440"
 msgid "Current fanart"
-msgstr "Aktualna tapeta"
+msgstr "Aktualny Fanart"
 
 msgctxt "#20441"
 msgid "Remote fanart"
-msgstr "Tapeta zdalna"
+msgstr "Zdalny Fanart"
 
 msgctxt "#20442"
 msgid "Change content"
@@ -8827,7 +8827,7 @@ msgstr "pozycji związanych z tą ścieżką?"
 
 msgctxt "#20445"
 msgid "Fanart"
-msgstr "Tapeta"
+msgstr "Fanart"
 
 msgctxt "#20446"
 msgid "Locally stored information found."
@@ -8975,7 +8975,7 @@ msgstr "Zakładka utworzona"
 
 msgctxt "#21363"
 msgid "Episode Bookmark created"
-msgstr "Zakładka epizodu utworzona"
+msgstr "Zakładka odcinku utworzona"
 
 msgctxt "#21364"
 msgid "Edit media share"
@@ -12163,11 +12163,11 @@ msgstr "Zaznacz, aby aktywować miksowanie dźwięku 2 kanałowego do liczby kan
 
 msgctxt "#36365"
 msgid "Select this option if your receiver is capable of decoding AC3 streams."
-msgstr "Zaznacz tę opcję, jeśli zewnętrzne urządzenie dekodowania wspiera dekodowanie strumieni AC3."
+msgstr "Zaznacz tę opcję, jeśli urządzenie dekodowania obsługuje strumień AC3."
 
 msgctxt "#36366"
 msgid "Select this option if your receiver is capable of decoding DTS streams."
-msgstr "Zaznacz tę opcję, jeśli zewnętrzne urządzenie dekodowania wspiera dekodowanie strumieni DTS."
+msgstr "Zaznacz tę opcję, jeśli urządzenie dekodowania obsługuje strumień DTS."
 
 msgctxt "#36367"
 msgid "Select the maximum number of audio channels/speakers available for audio decoded. If optical/coax digital outputs are used this must be set to 2.0"
@@ -12179,11 +12179,11 @@ msgstr "Aktywuje przesyłanie zakodowanego dźwięku w formatach takich jak Dolb
 
 msgctxt "#36369"
 msgid "Select this option if your receiver is capable of decoding TrueHD streams."
-msgstr "Zaznacz tę opcję, jeśli zewnętrzne urządzenie dekodowania wspiera dekodowanie strumieni TrueHD."
+msgstr "Zaznacz tę opcję, jeśli urządzenie dekodowania obsługuje strumień TrueHD."
 
 msgctxt "#36370"
 msgid "Select this option if your receiver is capable of decoding DTS-HD streams."
-msgstr "Zaznacz tę opcję, jeśli zewnętrzne urządzenie dekodowania wspiera dekodowanie strumieni DTS-HD."
+msgstr "Zaznacz tę opcję, jeśli urządzenie dekodowania obsługuje strumień DTS-HD."
 
 msgctxt "#36371"
 msgid "Select the device to be used for playback of audio that has been decoded such as mp3."
@@ -12571,7 +12571,7 @@ msgstr "Określa głębię napisów w stereoskopowych materiałach wideo 3D. Im 
 
 msgctxt "#36547"
 msgid "Use higher quality textures for covers and fanart (uses more memory)"
-msgstr "Używaj tekstur wyższej jakości dla okładek i tapet (zużywa więcej pamięci)"
+msgstr "Używaj tekstur wyższej jakości dla okładek i Fanartu (zużywa więcej pamięci)"
 
 msgctxt "#36548"
 msgid "Limits resolution of GUI to save memory. Does not affect video playback. Use 1080 for unlimited. Requires restart."
@@ -12627,7 +12627,7 @@ msgstr "Znajdź w"
 
 msgctxt "#37016"
 msgid "Select this option if your receiver is capable of decoding E-AC3 streams."
-msgstr "Zaznacz tę opcję, jeśli zewnętrzne urządzenie dekodowania wspiera dekodowanie strumieni E-AC3."
+msgstr "Zaznacz tę opcję, jeśli urządzenie dekodowania obsługuje strumień E-AC3."
 
 msgctxt "#37017"
 msgid "Dual audio output"
@@ -12643,7 +12643,7 @@ msgstr "Aktywuje klawisze systemowe takie, jak PrintScreen, Alt-Tab i regulacji 
 
 msgctxt "#37020"
 msgid "Enable higher colour depth artwork"
-msgstr "Aktywuj większą głębię koloru grafik"
+msgstr "Używaj powiększonej głębi koloru grafik"
 
 msgctxt "#37021"
 msgid "Set GUI resolution limit"
