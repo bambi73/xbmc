@@ -141,6 +141,8 @@ bool CDirectory::GetDirectory(const CURL& url, CFileItemList &items, const std::
 
 bool CDirectory::GetDirectory(const CURL& url, CFileItemList &items, const CHints &hints, bool allowThreads)
 {
+  unsigned int timeFull = XbmcThreads::SystemClockMillis();
+
   try
   {
     CURL realURL = URIUtils::SubstitutePath(url);
@@ -149,8 +151,10 @@ bool CDirectory::GetDirectory(const CURL& url, CFileItemList &items, const CHint
       return false;
 
     // check our cache for this path
-    if (g_directoryCache.GetDirectory(realURL.Get(), items, (hints.flags & DIR_FLAG_READ_CACHE) == DIR_FLAG_READ_CACHE))
+    if (!(hints.flags & DIR_FLAG_BYPASS_CACHE) &&
+        g_directoryCache.GetDirectory(realURL.Get(), items, (hints.flags & DIR_FLAG_READ_CACHE) == DIR_FLAG_READ_CACHE)) {
       items.SetURL(url);
+    }
     else
     {
       // need to clear the cache (in case the directory fetch fails)
@@ -263,6 +267,8 @@ bool CDirectory::GetDirectory(const CURL& url, CFileItemList &items, const CHint
       }
     }
 
+    CLog::Log(LOGDEBUG, "%s took %d ms ", __FUNCTION__, XbmcThreads::SystemClockMillis() - timeFull);
+
     return true;
   }
   XBMCCOMMONS_HANDLE_UNCHECKED
@@ -271,6 +277,7 @@ bool CDirectory::GetDirectory(const CURL& url, CFileItemList &items, const CHint
     CLog::Log(LOGERROR, "%s - Unhandled exception", __FUNCTION__);
   }
   CLog::Log(LOGERROR, "%s - Error getting %s", __FUNCTION__, url.GetRedacted().c_str());
+  CLog::Log(LOGDEBUG, "%s took %d ms ", __FUNCTION__, XbmcThreads::SystemClockMillis() - timeFull);
   return false;
 }
 

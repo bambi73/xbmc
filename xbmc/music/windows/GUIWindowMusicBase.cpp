@@ -1171,3 +1171,12 @@ std::string CGUIWindowMusicBase::GetStartFolder(const std::string &dir)
     return "special://musicplaylists/";
   return CGUIMediaWindow::GetStartFolder(dir);
 }
+
+bool CGUIWindowMusicBase::GetSimpleDirectoryHistoryString(const CFileItem* pItem, std::string& strHistoryString) {
+  if (pItem->HasMusicInfoTag()) {
+    strHistoryString = StringUtils::Format("%s-%d", pItem->GetMusicInfoTag()->GetType().c_str(), pItem->GetMusicInfoTag()->GetDatabaseId());
+    return true;
+  }
+
+  return false;
+}

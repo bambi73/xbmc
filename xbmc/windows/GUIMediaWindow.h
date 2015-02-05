@@ -90,7 +90,8 @@ protected:
   virtual void OnPrepareFileItems(CFileItemList &items);
   virtual void OnCacheFileItems(CFileItemList &items);
   virtual void OnFinalizeFileItems(CFileItemList &items);
-  virtual void GetGroupedItems(CFileItemList &items) { }
+  virtual void GetGroupedItems(CFileItemList &items, bool skipThumbLoader = false) { }
+  virtual void PostGetGroupedItems(CFileItemList &items, int selectedItemIndex = 0) { }
 
   void ClearFileItems();
   virtual void SortItems(CFileItemList &items);
@@ -113,7 +114,7 @@ protected:
    \param filter the filter to use.
    \sa FilterItems
    */
-  void OnFilterItems(const std::string &filter);
+  void OnFilterItems(const std::string &filter, const bool onUpdate = false);
 
   /* \brief Retrieve the filtered item list
    \param filter filter to apply
@@ -134,6 +135,7 @@ protected:
   virtual bool HaveDiscOrConnection(const std::string& strPath, int iDriveType);
   void ShowShareErrorMessage(CFileItem* pItem);
 
+  virtual bool GetSimpleDirectoryHistoryString(const CFileItem* pItem, std::string& strHistoryString);
   void GetDirectoryHistoryString(const CFileItem* pItem, std::string& strHistoryString);
   void SetHistoryForPath(const std::string& strDirectory);
   virtual void LoadPlayList(const std::string& strFileName) {}
@@ -149,6 +151,9 @@ protected:
    \param dir the folder the user wants
    \return the resulting path */
   virtual std::string GetStartFolder(const std::string &url);
+
+  virtual void GetSelectedItemIdent(std::string &selectedItemIdent);
+  virtual int  GetItemIndexByIdent(std::string &itemIdent);
 
   /*! \brief Utility method to remove the given parameter from a path/URL
    \param strDirectory Path/URL from which to remove the given parameter

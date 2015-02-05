@@ -34,6 +34,7 @@
 #ifdef TARGET_WINDOWS
 #include "WIN32Util.h"
 #endif
+#include "utils/log.h"
 
 using namespace XFILE;
 
@@ -75,25 +76,30 @@ bool CVirtualDirectory::GetDirectory(const CURL& url, CFileItemList &items)
 }
 bool CVirtualDirectory::GetDirectory(const CURL& url, CFileItemList &items, bool bUseFileDirectories)
 {
+  unsigned int timeFull = XbmcThreads::SystemClockMillis();
+
   std::string strPath = url.Get();
   int flags = m_flags;
+  if (!(flags & DIR_FLAG_READ_CACHE))
+    flags |= DIR_FLAG_BYPASS_CACHE;
   if (!bUseFileDirectories)
     flags |= DIR_FLAG_NO_FILE_DIRS;
   if (!strPath.empty() && strPath != "files://")
     return CDirectory::GetDirectory(strPath, items, m_strFileMask, flags, m_allowThreads);
 
-  // if strPath is blank, clear the list (to avoid parent items showing up)
-  if (strPath.empty())
-    items.Clear();
+    if(strPath.empty())
+        items.Clear();
 
-  // return the root listing
-  items.SetPath(strPath);
+    items.SetPath(strPath);
+    VECSOURCES shares;
+    GetSources(shares);
+    CSourcesDirectory dir;
 
-  // grab our shares
-  VECSOURCES shares;
-  GetSources(shares);
-  CSourcesDirectory dir;
-  return dir.GetDirectory(shares, items);
+    bool retValue = dir.GetDirectory(shares, items);
+
+    CLog::Log(LOGDEBUG, "%s took %d ms ", __FUNCTION__, XbmcThreads::SystemClockMillis() - timeFull);
+
+    return retValue;
 }
 
 /*!

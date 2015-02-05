@@ -67,6 +67,8 @@ namespace XFILE
     bool success = false, success2 = false;
     std::vector<std::string> virtualFolders;
 
+//    unsigned int timeFull = XbmcThreads::SystemClockMillis();
+
     SortDescription sorting;
     sorting.limitEnd = playlist.GetLimit();
     sorting.sortBy = playlist.GetOrder();
@@ -291,6 +293,8 @@ namespace XFILE
       CFileItemPtr item = items[i];
       item->m_iprogramCount = i;  // hack for playlist order
     }
+
+//    CLog::Log(LOGDEBUG, "%s took %d ms ", "CSmartPlaylistDirectory::GetDirectory", XbmcThreads::SystemClockMillis() - timeFull);
 
     if (playlist.GetType() == "mixed")
       return success || success2;

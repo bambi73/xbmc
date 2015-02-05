@@ -69,6 +69,7 @@ protected:
   virtual void OnScan(int iItem) {};
   void OnRipCD();
   virtual std::string GetStartFolder(const std::string &dir);
+  virtual bool GetSimpleDirectoryHistoryString(const CFileItem* pItem, std::string& strHistoryString);
 
   virtual bool CheckFilterAdvanced(CFileItemList &items) const;
   virtual bool CanContainFilter(const std::string &strDirectory) const;

@@ -24,6 +24,7 @@
 #include "Bookmark.h"
 #include "utils/SortUtils.h"
 #include "video/VideoDbUrl.h"
+#include "FileItem.h"
 
 #include <memory>
 #include <set>
@@ -345,6 +346,60 @@ const struct SDbTableOffsets DbMusicVideoOffsets[] =
 #define COMPARE_PERCENTAGE     0.90f // 90%
 #define COMPARE_PERCENTAGE_MIN 0.50f // 50%
 
+/* Tady je Bambiho */
+typedef boost::shared_ptr< CFileItemList > CFileItemListPtr;
+
+typedef std::map< int, CFileItemPtr > MAP_INT2FILEITEMPTR;
+typedef std::map< int, CFileItemPtr >::iterator MAPI_INT2FILEITEMPTR;
+typedef std::pair< int, CFileItemPtr > MAPP_INT2FILEITEMPTR;
+
+class CTvShowCacheItem {
+public:
+	CTvShowCacheItem();
+  virtual ~CTvShowCacheItem();
+
+  bool IsDirty() const { return m_bIsDirty; }
+  void SetDirty(bool isDirty) { m_bIsDirty = isDirty; }
+
+  CFileItemListPtr m_fileItemListPtr;
+  MAP_INT2FILEITEMPTR m_tvShowId2FileItemPtr;
+
+private:
+  bool m_bIsDirty;
+
+};
+
+typedef boost::shared_ptr< CTvShowCacheItem > CTvShowCacheItemPtr;
+
+typedef std::map< CStdString, CTvShowCacheItemPtr > MAP_STRING2TVSHOWCACHEITEMPTR;
+typedef std::map< CStdString, CTvShowCacheItemPtr >::iterator MAPI_STRING2TVSHOWCACHEITEMPTR;
+typedef std::pair< CStdString, CTvShowCacheItemPtr > MAPP_STRING2TVSHOWCACHEITEMPTR;
+
+typedef std::set< CTvShowCacheItemPtr > SET_TVSHOWCACHEITEMPTR;
+typedef std::set< CTvShowCacheItemPtr >::iterator SETI_TVSHOWCACHEITEMPTR;
+
+typedef std::vector< CFileItemPtr > VEC_FILEITEMPTR;
+typedef std::vector< CFileItemPtr >::iterator VECI_FILEITEMPTR;
+
+typedef std::map< int, SET_TVSHOWCACHEITEMPTR > MAP_INT2TVSHOWCACHEITEMPTRSET;
+typedef std::map< int, SET_TVSHOWCACHEITEMPTR >::iterator MAPI_INT2TVSHOWCACHEITEMPTRSET;
+typedef std::pair< int, SET_TVSHOWCACHEITEMPTR > MAPP_INT2TVSHOWCACHEITEMPTRSET;
+
+class CTvShowCache {
+public:
+	CTvShowCache();
+  virtual ~CTvShowCache();
+
+  void ProcessAffectedTvShowFileItems(int showId, VEC_FILEITEMPTR *affectedFileItems, bool dirty, bool remove);
+  void DirtyTvShowFileItemById(int showId);
+
+  void DirtyAllTvShowCacheItems();
+
+  MAP_STRING2TVSHOWCACHEITEMPTR m_sqlQuery2TvShowCacheItemPtr;
+  MAP_INT2TVSHOWCACHEITEMPTRSET m_tvShowId2TvShowCacheItemPtrSet;
+
+};
+
 class CVideoDatabase : public CDatabase
 {
 public:
@@ -473,7 +528,7 @@ public:
    \return the id of the tvshow.
    */
   int SetDetailsForTvShow(const std::vector< std::pair<std::string, std::string> > &paths, const CVideoInfoTag& details, const std::map<std::string, std::string> &artwork, const std::map<int, std::map<std::string, std::string> > &seasonArt, int idTvShow = -1);
-  bool UpdateDetailsForTvShow(int idTvShow, const CVideoInfoTag &details, const std::map<std::string, std::string> &artwork, const std::map<int, std::map<std::string, std::string> > &seasonArt);
+  bool UpdateDetailsForTvShow(int idTvShow, const CVideoInfoTag &details, const std::map<std::string, std::string> &artwork, const std::map<int, std::map<std::string, std::string> > &seasonArt, bool bUpdateCache = true);
   int SetDetailsForSeason(const CVideoInfoTag& details, const std::map<std::string, std::string> &artwork, int idShow, int idSeason = -1);
   int SetDetailsForEpisode(const CStdString& strFilenameAndPath, const CVideoInfoTag& details, const std::map<std::string, std::string> &artwork, int idShow, int idEpisode=-1);
   int SetDetailsForMusicVideo(const CStdString& strFilenameAndPath, const CVideoInfoTag& details, const std::map<std::string, std::string> &artwork, int idMVideo = -1);
@@ -492,7 +547,7 @@ public:
   void DeleteTvShow(int idTvShow, bool bKeepId = false);
   void DeleteTvShow(const CStdString& strPath);
   void DeleteSeason(int idSeason, bool bKeepId = false);
-  void DeleteEpisode(int idEpisode, bool bKeepId = false);
+  void DeleteEpisode(int idEpisode, bool bKeepId = false, bool bUpdateCache = true);
   void DeleteEpisode(const CStdString& strFilenameAndPath, bool bKeepId = false);
   void DeleteMusicVideo(int idMusicVideo, bool bKeepId = false);
   void DeleteMusicVideo(const CStdString& strFilenameAndPath, bool bKeepId = false);
@@ -901,4 +956,8 @@ private:
 
   static void AnnounceRemove(std::string content, int id, bool scanning = false);
   static void AnnounceUpdate(std::string content, int id);
+
+  void UpdateTvShowFileItemById(int showId);
+
+  static CTvShowCache sm_TvShowCache;
 };

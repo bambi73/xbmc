@@ -1612,7 +1612,7 @@ void CGUIWindowVideoBase::PlayMovie(const CFileItem *item)
   g_playlistPlayer.Play(0);
 
   if(!g_application.m_pPlayer->IsPlayingVideo())
-    m_thumbLoader.Load(*m_vecItems);
+    m_thumbLoader.Load(*m_vecItems, m_viewControl.GetSelectedItem());
 }
 
 void CGUIWindowVideoBase::OnDeleteItem(int iItem)
@@ -1716,21 +1716,37 @@ void CGUIWindowVideoBase::PlayItem(int iItem)
 
 bool CGUIWindowVideoBase::Update(const std::string &strDirectory, bool updateFilterPath /* = true */)
 {
-  if (m_thumbLoader.IsLoading())
+//  unsigned int timeFull = XbmcThreads::SystemClockMillis();
+//  unsigned int timePart = XbmcThreads::SystemClockMillis();
+//   CLog::Log(LOGDEBUG, "%s started", __FUNCTION__);
+
+   if (m_thumbLoader.IsLoading())
     m_thumbLoader.StopThread();
+
+//   CLog::Log(LOGDEBUG, "%s.StopThread: took %d ms", __FUNCTION__, XbmcThreads::SystemClockMillis() - timePart);
+//   timePart = XbmcThreads::SystemClockMillis();
 
   if (!CGUIMediaWindow::Update(strDirectory, updateFilterPath))
     return false;
 
+//  CLog::Log(LOGDEBUG, "%s.Update: took %d ms", __FUNCTION__, XbmcThreads::SystemClockMillis() - timePart);
+//  timePart = XbmcThreads::SystemClockMillis();
+
   // might already be running from GetGroupedItems
   if (!m_thumbLoader.IsLoading())
-    m_thumbLoader.Load(*m_vecItems);
+    m_thumbLoader.Load(*m_vecItems, m_viewControl.GetSelectedItem());
+
+//  CLog::Log(LOGDEBUG, "%s.Load: took %d ms", __FUNCTION__, XbmcThreads::SystemClockMillis() - timePart);
+//  timePart = XbmcThreads::SystemClockMillis();
 
   return true;
 }
 
 bool CGUIWindowVideoBase::GetDirectory(const std::string &strDirectory, CFileItemList &items)
 {
+  unsigned int timeFull = XbmcThreads::SystemClockMillis();
+  CLog::Log(LOGDEBUG, "%s started", __FUNCTION__);
+
   bool bResult = CGUIMediaWindow::GetDirectory(strDirectory, items);
 
   // add in the "New Playlist" item if we're in the playlists folder
@@ -1764,6 +1780,8 @@ bool CGUIWindowVideoBase::GetDirectory(const std::string &strDirectory, CFileIte
   if (m_stackingAvailable && !items.IsStack() && CSettings::Get().GetBool("myvideos.stackvideos"))
     items.Stack();
 
+  CLog::Log(LOGDEBUG, "%s took %d ms ", __FUNCTION__, XbmcThreads::SystemClockMillis() - timeFull);
+
   return bResult;
 }
 
@@ -1776,9 +1794,9 @@ bool CGUIWindowVideoBase::StackingAvailable(const CFileItemList &items)
            url.IsProtocol("playlistvideo"));
 }
 
-void CGUIWindowVideoBase::GetGroupedItems(CFileItemList &items)
+void CGUIWindowVideoBase::GetGroupedItems(CFileItemList &items, bool skipThumbLoader /* = false */)
 {
-  CGUIMediaWindow::GetGroupedItems(items);
+  CGUIMediaWindow::GetGroupedItems(items, skipThumbLoader);
 
   std::string group;
   bool mixed = false;
@@ -1807,11 +1825,17 @@ void CGUIWindowVideoBase::GetGroupedItems(CFileItemList &items)
     }
   }
 
+  if(!skipThumbLoader) {
+    PostGetGroupedItems(items);
+  }
+}
+
+void CGUIWindowVideoBase::PostGetGroupedItems(CFileItemList &items, int selectedItemIndex /* = 0 */) {
   // reload thumbs after filtering and grouping
   if (m_thumbLoader.IsLoading())
     m_thumbLoader.StopThread();
 
-  m_thumbLoader.Load(items);
+  m_thumbLoader.Load(items, selectedItemIndex);
 }
 
 bool CGUIWindowVideoBase::CheckFilterAdvanced(CFileItemList &items) const
@@ -2128,4 +2152,13 @@ void CGUIWindowVideoBase::OnInitWindow()
       CSettings::Get().Save();
     }
   }
+}
+
+bool CGUIWindowVideoBase::GetSimpleDirectoryHistoryString(const CFileItem* pItem, std::string& strHistoryString) {
+  if (pItem->HasVideoInfoTag()) {
+    strHistoryString = StringUtils::Format("%s-%d", pItem->GetVideoInfoTag()->m_type.c_str(), pItem->GetVideoInfoTag()->m_iDbId);
+    return true;
+  }
+
+  return false;
 }
