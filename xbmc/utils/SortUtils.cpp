@@ -727,10 +727,6 @@ void SortUtils::Sort(const SortDescription &sortDescription, SortItems& items)
 
 bool SortUtils::SortFromDataset(const SortDescription &sortDescription, const MediaType &mediaType, const std::auto_ptr<dbiplus::Dataset> &dataset, DatabaseResults &results)
 {
-//  unsigned int timeFull = XbmcThreads::SystemClockMillis();
-//  unsigned int timePart = XbmcThreads::SystemClockMillis();
-//  CLog::Log(LOGDEBUG, "%s started", "SortUtils::SortFromDataset");
-
   FieldList fields;
   if (!DatabaseUtils::GetSelectFields(SortUtils::GetFieldsForSorting(sortDescription.sortBy), mediaType, fields))
     fields.clear();
@@ -745,13 +741,7 @@ bool SortUtils::SortFromDataset(const SortDescription &sortDescription, const Me
     sorting.limitEnd = -1;
   }
 
-//  CLog::Log(LOGDEBUG, "%s took %d ms ", "SortUtils::SortFromDataset loading from dataset", XbmcThreads::SystemClockMillis() - timePart);
-//  timePart = XbmcThreads::SystemClockMillis();
-
   Sort(sorting, results);
-
-//  CLog::Log(LOGDEBUG, "%s took %d ms ", "SortUtils::SortFromDataset sorting", XbmcThreads::SystemClockMillis() - timePart);
-//  CLog::Log(LOGDEBUG, "%s took %d ms ", "SortUtils::SortFromDataset", XbmcThreads::SystemClockMillis() - timeFull);
 
   return true;
 }
