@@ -270,9 +270,6 @@ CStdString CGUIWindowVideoNav::GetQuickpathName(const CStdString& strPath) const
 
 bool CGUIWindowVideoNav::GetDirectory(const std::string &strDirectory, CFileItemList &items)
 {
-  unsigned int timeFull = XbmcThreads::SystemClockMillis();
-  CLog::Log(LOGDEBUG, "%s started", __FUNCTION__);
-
   if (m_thumbLoader.IsLoading())
     m_thumbLoader.StopThread();
 
@@ -323,9 +320,6 @@ bool CGUIWindowVideoNav::GetDirectory(const std::string &strDirectory, CFileItem
             return false;
 
           videoUrl.AppendPath("-2/");
-
-          CLog::Log(LOGDEBUG, "%s took %d ms ", __FUNCTION__, XbmcThreads::SystemClockMillis() - timeFull);
-
           return GetDirectory(videoUrl.ToString(), items);
         }
       }
@@ -435,9 +429,6 @@ bool CGUIWindowVideoNav::GetDirectory(const std::string &strDirectory, CFileItem
       items.Add(newTag);
     }
   }
-
-  CLog::Log(LOGDEBUG, "%s took %d ms ", __FUNCTION__, XbmcThreads::SystemClockMillis() - timeFull);
-
   return bResult;
 }
 
@@ -599,12 +590,8 @@ void CGUIWindowVideoNav::UpdateButtons()
 
 bool CGUIWindowVideoNav::GetFilteredItems(const std::string &filter, CFileItemList &items)
 {
-//  unsigned int timeFull = XbmcThreads::SystemClockMillis();
-
   bool listchanged = CGUIMediaWindow::GetFilteredItems(filter, items);
   listchanged |= ApplyWatchedFilter(items);
-
-//  CLog::Log(LOGDEBUG, "%s took %d ms", __FUNCTION__, XbmcThreads::SystemClockMillis() - timeFull);
 
   return listchanged;
 }

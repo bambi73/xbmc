@@ -1716,37 +1716,21 @@ void CGUIWindowVideoBase::PlayItem(int iItem)
 
 bool CGUIWindowVideoBase::Update(const std::string &strDirectory, bool updateFilterPath /* = true */)
 {
-//  unsigned int timeFull = XbmcThreads::SystemClockMillis();
-//  unsigned int timePart = XbmcThreads::SystemClockMillis();
-//   CLog::Log(LOGDEBUG, "%s started", __FUNCTION__);
-
-   if (m_thumbLoader.IsLoading())
+  if (m_thumbLoader.IsLoading())
     m_thumbLoader.StopThread();
-
-//   CLog::Log(LOGDEBUG, "%s.StopThread: took %d ms", __FUNCTION__, XbmcThreads::SystemClockMillis() - timePart);
-//   timePart = XbmcThreads::SystemClockMillis();
 
   if (!CGUIMediaWindow::Update(strDirectory, updateFilterPath))
     return false;
 
-//  CLog::Log(LOGDEBUG, "%s.Update: took %d ms", __FUNCTION__, XbmcThreads::SystemClockMillis() - timePart);
-//  timePart = XbmcThreads::SystemClockMillis();
-
   // might already be running from GetGroupedItems
   if (!m_thumbLoader.IsLoading())
     m_thumbLoader.Load(*m_vecItems, m_viewControl.GetSelectedItem());
-
-//  CLog::Log(LOGDEBUG, "%s.Load: took %d ms", __FUNCTION__, XbmcThreads::SystemClockMillis() - timePart);
-//  timePart = XbmcThreads::SystemClockMillis();
 
   return true;
 }
 
 bool CGUIWindowVideoBase::GetDirectory(const std::string &strDirectory, CFileItemList &items)
 {
-  unsigned int timeFull = XbmcThreads::SystemClockMillis();
-  CLog::Log(LOGDEBUG, "%s started", __FUNCTION__);
-
   bool bResult = CGUIMediaWindow::GetDirectory(strDirectory, items);
 
   // add in the "New Playlist" item if we're in the playlists folder
@@ -1779,8 +1763,6 @@ bool CGUIWindowVideoBase::GetDirectory(const std::string &strDirectory, CFileIte
 
   if (m_stackingAvailable && !items.IsStack() && CSettings::Get().GetBool("myvideos.stackvideos"))
     items.Stack();
-
-  CLog::Log(LOGDEBUG, "%s took %d ms ", __FUNCTION__, XbmcThreads::SystemClockMillis() - timeFull);
 
   return bResult;
 }

@@ -141,8 +141,6 @@ bool CDirectory::GetDirectory(const CURL& url, CFileItemList &items, const std::
 
 bool CDirectory::GetDirectory(const CURL& url, CFileItemList &items, const CHints &hints, bool allowThreads)
 {
-  unsigned int timeFull = XbmcThreads::SystemClockMillis();
-
   try
   {
     CURL realURL = URIUtils::SubstitutePath(url);
@@ -267,8 +265,6 @@ bool CDirectory::GetDirectory(const CURL& url, CFileItemList &items, const CHint
       }
     }
 
-    CLog::Log(LOGDEBUG, "%s took %d ms ", __FUNCTION__, XbmcThreads::SystemClockMillis() - timeFull);
-
     return true;
   }
   XBMCCOMMONS_HANDLE_UNCHECKED
@@ -277,7 +273,6 @@ bool CDirectory::GetDirectory(const CURL& url, CFileItemList &items, const CHint
     CLog::Log(LOGERROR, "%s - Unhandled exception", __FUNCTION__);
   }
   CLog::Log(LOGERROR, "%s - Error getting %s", __FUNCTION__, url.GetRedacted().c_str());
-  CLog::Log(LOGDEBUG, "%s took %d ms ", __FUNCTION__, XbmcThreads::SystemClockMillis() - timeFull);
   return false;
 }
 
