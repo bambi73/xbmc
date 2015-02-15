@@ -27,7 +27,6 @@
 #include "utils/StdString.h"
 #include "utils/StringUtils.h"
 #include "utils/Variant.h"
-#include "utils/log.h"
 
 using namespace std;
 
